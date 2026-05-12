@@ -1,46 +1,6 @@
 {
 	"provider": {
-		"name": "maas",
-		"schema": {
-			"attributes": [
-				{
-					"name": "authorization_endpoint",
-					"string": {
-						"optional_required": "required"
-					}
-				},
-				{
-					"name": "introspection_endpoint",
-					"string": {
-						"optional_required": "optional"
-					}
-				},
-				{
-					"name": "jwks_uri",
-					"string": {
-						"optional_required": "required"
-					}
-				},
-				{
-					"name": "revocation_endpoint",
-					"string": {
-						"optional_required": "optional"
-					}
-				},
-				{
-					"name": "token_endpoint",
-					"string": {
-						"optional_required": "required"
-					}
-				},
-				{
-					"name": "userinfo_endpoint",
-					"string": {
-						"optional_required": "optional"
-					}
-				}
-			]
-		}
+		"name": "maas"
 	},
 	"resources": [
 		{

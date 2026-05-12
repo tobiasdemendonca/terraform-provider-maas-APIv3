@@ -1,6 +1,7 @@
 provider:
   name: maas
-  schema_ref: '#/components/schemas/ProviderMetadata'
+  # schema_ref: '#/components/schemas/ProviderMetadata'
+  
 
 resources:
   tag:
