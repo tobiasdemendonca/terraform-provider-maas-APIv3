@@ -33,3 +33,10 @@ website/vendor
 
 # Keep windows files with windows line endings
 *.winfile eol=crlf
+
+# Client generation
+api/openapi.converted.json
+
+# Dev env
+.devenv/*
+dev.tfrc
