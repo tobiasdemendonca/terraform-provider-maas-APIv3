@@ -1,3 +1,5 @@
+See [AGENTS.md](AGENTS.md) for the practical developer and agent guide (commands, layout, conventions).
+
 Abstract
 The previous provider has been successful in allowing customers to manage MAAS resources via APIv2 using the existing terraform-provider-maas. This spec outlines a plan for developing a new provider specifically for APIv3.
 Rationale
