@@ -3,10 +3,10 @@ name: create-resource
 description: Add a new Terraform resource to the provider.
 ---
 
-Add a new Terraform resource to the MAAS provider.
+You will be assisting to implement a new Terraform resource for the MAAS provider. Your ultimate objective is to write the simplest implementation of a new resource possible that matches every single criterion in the users design plan.
 
 Follow these steps in order:
-1. **Get the resource name** — ask the user for the resource name in snake_case (e.g. `network_interface`, `subnet`). 
+1. **Get the resource name** — ask the user for the resource name in snake_case (e.g. `network_interface`, `subnet`), and a short description of the design concept for the resource. 
 
 2. **Regenerate the client** — run `make generate-client`. This converts the OpenAPI spec and regenerates `internal/client/maasclientv3/client.gen.go` which might have been updated. Fix any errors in `scripts/fix-openapi-nullable.py` rather than editing generated files.
 
@@ -45,4 +45,6 @@ Follow these steps in order:
 
 8. **Verify** — Run `make lint fmt`, then `make build` to verify it compiles.
 
-9. **Remind** — let the user know they should write acceptance tests. Tests must be idempotent and leave no trailing resources.
+9. **Example** — Add 1 or more examples of the resource in `.devenv/main.tf` that tests its functionality for the user's own QA. Inform them. 
+
+10. **Remind** — let the user know they should write acceptance tests. Tests must be idempotent and leave no trailing resources.
