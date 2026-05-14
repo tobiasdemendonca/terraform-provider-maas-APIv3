@@ -17,3 +17,14 @@ resources:
     delete:
       path: /MAAS/a/v3/tags/{tag_id}
       method: DELETE
+
+  ssh_key:
+    create:
+      path: /MAAS/a/v3/users/me/sshkeys
+      method: POST
+    read:
+      path: /MAAS/a/v3/users/me/sshkeys/{sshkey_id}
+      method: GET
+    delete:
+      path: /MAAS/a/v3/users/me/sshkeys/{id}
+      method: DELETE
