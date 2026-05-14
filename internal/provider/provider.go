@@ -24,13 +24,9 @@ import (
 )
 
 const (
-	MaasURLEnvKey      = "MAAS_URL"
-	MaasUserEnvKey     = "MAAS_USER"
-	MaasPasswordEnvKey = "MAAS_PWD"
-
-	attrURL      = "url"
-	attrUsername = "username"
-	attrPassword = "password"
+	MaasURLEnvKey      = "TF_MAAS_URL"
+	MaasUserEnvKey     = "TF_MAAS_USER"
+	MaasPasswordEnvKey = "TF_MAAS_PWD"
 )
 
 var _ provider.Provider = &MaasProvider{}
@@ -61,15 +57,15 @@ func (p *MaasProvider) Metadata(_ context.Context, _ provider.MetadataRequest, r
 func (p *MaasProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			attrURL: schema.StringAttribute{
+			"api_url": schema.StringAttribute{
 				MarkdownDescription: fmt.Sprintf("MAAS API base URL (e.g. `http://10.0.0.1:5240`). Can also be set via `%s`.", MaasURLEnvKey),
 				Optional:            true,
 			},
-			attrUsername: schema.StringAttribute{
+			"username": schema.StringAttribute{
 				MarkdownDescription: fmt.Sprintf("MAAS username. Can also be set via `%s`.", MaasUserEnvKey),
 				Optional:            true,
 			},
-			attrPassword: schema.StringAttribute{
+			"password": schema.StringAttribute{
 				MarkdownDescription: fmt.Sprintf("MAAS password. Can also be set via `%s`.", MaasPasswordEnvKey),
 				Optional:            true,
 				Sensitive:           true,
