@@ -18,9 +18,12 @@ resources:
       path: /MAAS/a/v3/tags/{tag_id}
       method: DELETE
 
-  ssh_key:
+  ssh_keys:
     create:
       path: /MAAS/a/v3/users/me/sshkeys
+      method: POST
+    import:
+      path: /MAAS/a/v3/users/me/sshkeys/import
       method: POST
     read:
       path: /MAAS/a/v3/users/me/sshkeys/{sshkey_id}
