@@ -86,3 +86,6 @@ scaffold-function: ## Scaffold a new function: make scaffold-function NAME=<name
 	tfplugingen-framework scaffold function    -force -name $(NAME) -output-dir internal/provider/ -package provider
 
 .PHONY: help fmt lint test testacc build install generate generate-client create-dev-overrides scaffold-resource scaffold-datasource scaffold-function
+
+_generate-resources:
+	tfplugingen-framework generate resources --input ./api/generated/provider-code-spec.json --output internal/provider
