@@ -1,18 +1,28 @@
-PROVIDER_NAMESPACE ?= hashicorp
-PROVIDER_NAME      ?= scaffolding
+PROVIDER_NAMESPACE ?= canonical
+PROVIDER_NAME      ?= maas-apiv3
 
-default: fmt lint install generate
+# Built artifact (Terraform expects a name starting with terraform-provider-<type>)
+BIN    ?= $(CURDIR)/bin
+BINARY ?= terraform-provider-$(PROVIDER_NAME)
 
-build:
-	go build -v ./...
+default: help
 
-install:
-	go build -v -o "$$(go env GOPATH)/bin/terraform-provider-$(PROVIDER_NAME)" .
+help: ## Show all available make targets
+	@echo 'All Makefile commands:'
+	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+build: ## Compile the provider binary to $(BIN)/$(BINARY)
+	@mkdir -p $(BIN)
+	go build -v -o $(BIN)/$(BINARY) .
+
+install: build ## Copy provider binary from $(BIN) to $$GOPATH/bin (used by dev_overrides)
+	@mkdir -p "$$(go env GOPATH)/bin"
+	install -m 0755 $(BIN)/$(BINARY) "$$(go env GOPATH)/bin/$(BINARY)"
 
 DEV_TFRC ?= $(CURDIR)/dev.tfrc
 
-create-dev-overrides:
-	@printf 'provider_installation {\n  dev_overrides {\n    "$(PROVIDER_NAMESPACE)/$(PROVIDER_NAME)" = "%s"\n  }\n  direct {}\n}\n' "$$(go env GOPATH)/bin" > $(DEV_TFRC)
+create-dev-overrides: install ## Install provider + write dev.tfrc for local testing (then export TF_CLI_CONFIG_FILE)
+	@printf 'provider_installation {\n  dev_overrides {\n    "$(PROVIDER_NAMESPACE)/$(PROVIDER_NAME)" = "%s"\n  }\n  direct {}\n}\n' "$(BIN)" > $(DEV_TFRC)
 	@echo ""
 	@echo "  dev_overrides written to: $(DEV_TFRC)"
 	@echo ""
@@ -25,7 +35,7 @@ create-dev-overrides:
 	@echo "  profile (~/.bashrc, ~/.zshrc, ~/.config/fish/config.fish, etc.)."
 	@echo ""
 	@echo "  Typical workflow:"
-	@echo "    make install            # build and install provider binary to \$$GOPATH/bin"
+	@echo "    make create-dev-overrides   # builds $(BIN)/$(BINARY), installs to \$$GOPATH/bin, writes $(DEV_TFRC)"
 	@echo "    export TF_CLI_CONFIG_FILE=$(DEV_TFRC)"
 	@echo "    terraform apply         # skips version/checksum checks; no init needed"
 	@echo ""
@@ -35,25 +45,37 @@ create-dev-overrides:
 	@echo "  Or run 'terraform init -upgrade' once a new release is published."
 	@echo ""
 
-lint:
+lint: ## Run golangci-lint
 	golangci-lint run
 
-generate:
+generate: ## Run go generate (docs, etc.)
 	cd tools; go generate ./...
 
-generate-client: api/openapi.converted.json
-	oapi-codegen -config internal/client/maasclientv3/oapi-codegen.yaml api/openapi.converted.json
+generate-client: api/generated/openapi.converted.json ## Regenerate the MAAS API client from api/generated/openapi.json
+	oapi-codegen -config internal/client/maasclientv3/oapi-codegen.yaml api/generated/openapi.converted.json
 
-api/openapi.converted.json: api/openapi.json
-	python3 scripts/fix-openapi-nullable.py api/openapi.json api/openapi.converted.json
+api/generated/openapi.converted.json: api/generated/openapi.json
+	python3 scripts/fix-openapi-nullable.py api/generated/openapi.json api/generated/openapi.converted.json
 
-fmt:
+fmt: ## Run gofmt across the codebase
 	gofmt -s -w -e .
 
-test:
+test: ## Run unit tests
 	go test -v -cover -timeout=120s -parallel=10 ./...
 
-testacc:
+testacc: ## Run acceptance tests (requires live MAAS and TF_ACC=1)
 	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
-.PHONY: fmt lint test testacc build install generate generate-client create-dev-overrides
+scaffold-resource: ## Scaffold a new resource: make scaffold-resource NAME=<name>
+	@test -n "$(NAME)" || (echo "Usage: make scaffold-resource NAME=<name>"; exit 1)
+	tfplugingen-framework scaffold resource    -force -name $(NAME) -output-dir internal/provider/ -package provider
+
+scaffold-datasource: ## Scaffold a new data source: make scaffold-datasource NAME=<name>
+	@test -n "$(NAME)" || (echo "Usage: make scaffold-datasource NAME=<name>"; exit 1)
+	tfplugingen-framework scaffold data-source -force -name $(NAME) -output-dir internal/provider/ -package provider
+
+scaffold-function: ## Scaffold a new function: make scaffold-function NAME=<name>
+	@test -n "$(NAME)" || (echo "Usage: make scaffold-function NAME=<name>"; exit 1)
+	tfplugingen-framework scaffold function    -force -name $(NAME) -output-dir internal/provider/ -package provider
+
+.PHONY: help fmt lint test testacc build install generate generate-client create-dev-overrides scaffold-resource scaffold-datasource scaffold-function

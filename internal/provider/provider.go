@@ -57,7 +57,7 @@ func (p *MaasProvider) Metadata(_ context.Context, _ provider.MetadataRequest, r
 func (p *MaasProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"api_url": schema.StringAttribute{
+			"url": schema.StringAttribute{
 				MarkdownDescription: fmt.Sprintf("MAAS API base URL (e.g. `http://10.0.0.1:5240`). Can also be set via `%s`.", MaasURLEnvKey),
 				Optional:            true,
 			},
@@ -135,6 +135,7 @@ func (p *MaasProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 func (p *MaasProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewTagResource,
+		NewSshKeyResource,
 	}
 }
 
