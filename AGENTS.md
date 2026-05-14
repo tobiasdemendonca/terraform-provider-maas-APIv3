@@ -1,10 +1,12 @@
 # AGENTS.md
 
-Practical guide for AI coding agents working on this repository. Read this first, then see [CLAUDE.md](CLAUDE.md) for the full product spec and requirements.
-
 ## Project
 
-Terraform provider for the MAAS API v3, built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The Go client is auto-generated from the OpenAPI spec via `oapi-codegen`.
+Terraform provider for the MAAS API v3, built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework).
+
+The Go client is auto-generated from the OpenAPI spec via `oapi-codegen`.
+
+
 
 Module: `terraform-provider-maas-apiv3`
 
