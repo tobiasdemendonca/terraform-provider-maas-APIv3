@@ -1,5 +1,10 @@
+PROVIDER_HOSTNAME  ?= registry.terraform.io
 PROVIDER_NAMESPACE ?= canonical
 PROVIDER_NAME      ?= maas-apiv3
+PROVIDER_VERSION   ?= 0.0.1
+
+OS   ?= $(shell go env GOOS)
+ARCH ?= $(shell go env GOARCH)
 
 # Built artifact (Terraform expects a name starting with terraform-provider-<type>)
 BIN    ?= $(CURDIR)/bin
@@ -15,9 +20,11 @@ build: ## Compile the provider binary to $(BIN)/$(BINARY)
 	@mkdir -p $(BIN)
 	go build -v -o $(BIN)/$(BINARY) .
 
-install: build ## Copy provider binary from $(BIN) to $$GOPATH/bin (used by dev_overrides)
-	@mkdir -p "$$(go env GOPATH)/bin"
-	install -m 0755 $(BIN)/$(BINARY) "$$(go env GOPATH)/bin/$(BINARY)"
+PLUGIN_DIR ?= ~/.terraform.d/plugins/$(PROVIDER_HOSTNAME)/$(PROVIDER_NAMESPACE)/$(PROVIDER_NAME)/$(PROVIDER_VERSION)/$(OS)_$(ARCH)
+
+install: build ## Install provider into the local filesystem mirror (~/.terraform.d/plugins/...)
+	@mkdir -p $(PLUGIN_DIR)
+	mv $(BIN)/$(BINARY) $(PLUGIN_DIR)/$(BINARY)
 
 DEV_TFRC ?= $(CURDIR)/dev.tfrc
 
