@@ -14,7 +14,11 @@ Follow these steps in order:
 
 4. Execute the grill-me skill found in `.claude/skills/grill-me/` to stress-test and form a clear resource design picture. Use the existing `tag` entry as an example of a clean pattern.
    
-4. **Add to generator config** — add an entry to `api/generator_config.yaml` under `resources:` with the resource name and its create/read/update/delete paths and methods. 
+4. Write a plan and show me the plan before asking if it needs to be revised before executing the next steps. The plan should include:
+   - The resource name and a brief description of its purpose.
+   - The client methods it will use for create/read/update/delete operations.
+   - A high-level outline of the resource schema (the attributes it will have).
+   - Any special considerations or edge cases that need to be handled in the implementation.
 
 5. **Scaffold the resource** — run `make scaffold-resource NAME=<name>` (using the snake_case name). This creates `internal/provider/<name>_resource.go`.
 
@@ -39,6 +43,6 @@ Follow these steps in order:
    - Get request data from the Terraform plan data over configuration data as the schema or resource may include plan modification logic which sets plan values.
    - Return errors that signify there is an existing resource. Terraform practitioners expect to be notified if an existing resource needs to be imported into Terraform rather than created. This prevents situations where multiple Terraform configurations unexpectedly manage the same underlying resource.
 
-8. **Verify** — run `make build` to confirm it compiles, then `make lint`.
+8. **Verify** — Run `make lint fmt`, then `make build` to verify it compiles.
 
 9. **Remind** — let the user know they should write acceptance tests. Tests must be idempotent and leave no trailing resources.
