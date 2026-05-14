@@ -1,5 +1,5 @@
 package: maasclientv3
-output: client.gen.go
+output: internal/client/maasclientv3/client.gen.go
 generate:
   models: true
   client: true
