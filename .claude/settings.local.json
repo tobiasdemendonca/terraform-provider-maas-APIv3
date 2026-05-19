@@ -1,14 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make install *)",
-      "Bash(make create_dev_overrides *)",
+      "Bash(make *)",
       "Bash(TF_CLI_CONFIG_FILE=/home/dummy/work/terraform-provider-maas-v3/dev.tfrc terraform *)",
       "Bash(go build *)",
       "WebFetch(domain:learn.openapis.org)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:www.jvt.me)"
+      "WebFetch(domain:www.jvt.me)",
+      "Bash(sed 's/\\(.*$//')"
     ]
   }
 }
