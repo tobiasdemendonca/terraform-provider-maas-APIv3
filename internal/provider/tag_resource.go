@@ -6,15 +6,16 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"terraform-provider-maas-apiv3/internal/client/maasclientv3"
+	"terraform-provider-maas-apiv3/internal/provider/resource_tag"
 )
 
 var _ resource.Resource = (*tagResource)(nil)
@@ -27,53 +28,23 @@ type tagResource struct {
 	client *maasclientv3.ClientWithResponses
 }
 
-type tagResourceModel struct {
-	Id         types.String `tfsdk:"id"`
-	Name       types.String `tfsdk:"name"`
-	Comment    types.String `tfsdk:"comment"`
-	Definition types.String `tfsdk:"definition"`
-	KernelOpts types.String `tfsdk:"kernel_opts"`
-}
-
 func (r *tagResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_tag"
 }
 
-func (r *tagResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a MAAS tag.",
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Numeric tag ID, stored as a string.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Tag name. Used in URLs so keep it short.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-			"comment": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				MarkdownDescription: "Description of what the tag is used for.",
-			},
-			"definition": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				MarkdownDescription: "XPath expression evaluated against node hardware details.",
-			},
-			"kernel_opts": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				MarkdownDescription: "Kernel options appended for nodes bearing this tag.",
-			},
-		},
-	}
+func (r *tagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	s := resource_tag.TagResourceSchema(ctx)
+	s.MarkdownDescription = "Manages a MAAS tag."
+
+	nameAttr := s.Attributes["name"].(schema.StringAttribute)
+	nameAttr.PlanModifiers = []planmodifier.String{stringplanmodifier.RequiresReplace()}
+	s.Attributes["name"] = nameAttr
+
+	idAttr := s.Attributes["id"].(schema.Int64Attribute)
+	idAttr.PlanModifiers = []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}
+	s.Attributes["id"] = idAttr
+
+	resp.Schema = s
 }
 
 func (r *tagResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -90,7 +61,7 @@ func (r *tagResource) Configure(_ context.Context, req resource.ConfigureRequest
 }
 
 func (r *tagResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data tagResourceModel
+	var data resource_tag.TagModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -118,19 +89,13 @@ func (r *tagResource) Create(ctx context.Context, req resource.CreateRequest, re
 }
 
 func (r *tagResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data tagResourceModel
+	var data resource_tag.TagModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id, err := strconv.Atoi(data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid tag ID in state", err.Error())
-		return
-	}
-
-	apiResp, err := r.client.GetTagWithResponse(ctx, id)
+	apiResp, err := r.client.GetTagWithResponse(ctx, int(data.Id.ValueInt64()))
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading tag", err.Error())
 		return
@@ -149,15 +114,9 @@ func (r *tagResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 }
 
 func (r *tagResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data tagResourceModel
+	var data resource_tag.TagModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id, err := strconv.Atoi(data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid tag ID in state", err.Error())
 		return
 	}
 
@@ -168,7 +127,7 @@ func (r *tagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		KernelOpts: optionalString(data.KernelOpts),
 	}
 
-	apiResp, err := r.client.UpdateTagWithResponse(ctx, id, body)
+	apiResp, err := r.client.UpdateTagWithResponse(ctx, int(data.Id.ValueInt64()), body)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating tag", err.Error())
 		return
@@ -183,19 +142,13 @@ func (r *tagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 }
 
 func (r *tagResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data tagResourceModel
+	var data resource_tag.TagModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id, err := strconv.Atoi(data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid tag ID in state", err.Error())
-		return
-	}
-
-	apiResp, err := r.client.DeleteTagWithResponse(ctx, id, &maasclientv3.DeleteTagParams{})
+	apiResp, err := r.client.DeleteTagWithResponse(ctx, int(data.Id.ValueInt64()), &maasclientv3.DeleteTagParams{})
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting tag", err.Error())
 		return
@@ -205,16 +158,14 @@ func (r *tagResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	}
 }
 
-// flattenTag copies API response fields into the Terraform model.
-func flattenTag(tag *maasclientv3.TagResponse, data *tagResourceModel) {
-	data.Id = types.StringValue(strconv.Itoa(tag.Id))
+func flattenTag(tag *maasclientv3.TagResponse, data *resource_tag.TagModel) {
+	data.Id = types.Int64Value(int64(tag.Id))
 	data.Name = types.StringValue(tag.Name)
 	data.Comment = types.StringValue(tag.Comment)
 	data.Definition = types.StringValue(tag.Definition)
 	data.KernelOpts = types.StringValue(tag.KernelOpts)
 }
 
-// optionalString converts a types.String to *string for optional API fields.
 func optionalString(s types.String) *string {
 	if s.IsNull() || s.IsUnknown() {
 		return nil
