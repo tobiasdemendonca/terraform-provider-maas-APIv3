@@ -13,14 +13,15 @@ Module: `terraform-provider-maas-apiv3`
 ## Essential Commands
 
 ```sh
-make build            # compile
-make install          # build and install binary to $GOPATH/bin
-make generate         # run go generate (docs, etc.)
-make generate-client  # convert api/generated/openapi.json → api/generated/openapi.converted.json, then run oapi-codegen
-make fmt              # gofmt
-make lint             # golangci-lint
-make test             # unit tests
-make testacc          # acceptance tests (requires live MAAS + TF_ACC=1)
+make build              # compile
+make install            # build and install binary to $GOPATH/bin
+make generate           # run go generate (docs, etc.)
+make generate-client    # regenerate internal/client/.../client.gen.go from openapi.json
+make generate-resources # regenerate internal/provider/resource_*/[name]_resource_gen.go from openapi.json + generator_config.yaml
+make fmt                # gofmt
+make lint               # golangci-lint
+make test               # unit tests
+make testacc            # acceptance tests (requires live MAAS + TF_ACC=1)
 make create-dev-overrides  # write dev.tfrc for local provider testing
 ```
 
@@ -28,30 +29,73 @@ make create-dev-overrides  # write dev.tfrc for local provider testing
 
 ```
 api/
-  generator_config.yaml     # codegen config — edit this to map resources to API paths
-  generated/                # do not edit any files in here by hand
-    openapi.json            # upstream MAAS OpenAPI spec (source of truth)
-    openapi.converted.json  # gitignored, produced by make generate-client
-    provider-code-spec.json # gitignored, produced by tfplugingen-framework
+  generator_config.yaml          # pipeline B config — add resources, paths, schema.ignores here
+  generated/
+    openapi.json                 # upstream MAAS OpenAPI spec (source of truth for both pipelines)
+    openapi.converted.json       # gitignored — intermediate, produced by both generate-* targets
+    provider-code-spec.json      # gitignored — intermediate, produced by tfplugingen-openapi
 docs/
-  ADRs/                     # Architecture Decision Records (NNNN-title.md)
+  ADRs/                          # Architecture Decision Records (NNNN-title.md)
 internal/
   client/
     maasclientv3/
-      oapi-codegen.yaml     # codegen config
-      client.gen.go         # generated — do not edit by hand
-  provider/                 # Terraform provider resources, data sources, functions
+      oapi-codegen.yaml          # pipeline A codegen config
+      client.gen.go              # generated — do not edit by hand
+  provider/
+    resource_<name>/
+      <name>_resource_gen.go    # generated schema + model — do not edit by hand
+    <name>_resource.go          # hand-written CRUD implementation
 scripts/
-  fix-openapi-nullable.py   # converts 3.1 nullable syntax to 3.0 for oapi-codegen
+  fix-openapi-nullable.py        # converts 3.1 nullable syntax to 3.0 for oapi-codegen
 tools/
-  tools.go                  # go:generate directives for tooling
+  tools.go                       # go:generate directives for tooling
 GNUmakefile
 ```
+
+## Code Generation
+
+Two independent pipelines both source from `api/generated/openapi.json`.
+
+**Pipeline A — API client** (`make generate-client`)
+```
+openapi.json → fix-openapi-nullable.py → openapi.converted.json → oapi-codegen → client.gen.go
+```
+
+**Pipeline B — Provider schemas** (`make generate-resources`)
+```
+openapi.json → fix-openapi-nullable.py → openapi.converted.json
+    → tfplugingen-openapi (uses generator_config.yaml) → provider-code-spec.json
+    → tfplugingen-framework → internal/provider/resource_<name>/<name>_resource_gen.go
+```
+
+Intermediate files (`openapi.converted.json`, `provider-code-spec.json`) are gitignored — they are fully derivable and committing them creates drift risk. Final Go artifacts (`client.gen.go`, `*_resource_gen.go`) **are** committed so that `go build` works without any generators installed and so that spec changes are visible as a reviewable `git diff`.
+
+### Adding a new resource
+1. Add the resource entry to `generator_config.yaml` — paths, methods, and `schema.ignores` for any API noise fields (`_embedded`, `_links`, `kind`, etc.)
+2. `make generate-resources` — creates `internal/provider/resource_<name>/<name>_resource_gen.go`
+3. Write `internal/provider/<name>_resource.go` — call the generated schema function, patch in plan modifiers, implement CRUD using the generated model struct
+4. Register in `provider.go`
+5. Commit `generator_config.yaml` + `*_gen.go` + `*_resource.go` together
+
+### Updating `openapi.json` (spec bump)
+1. Replace `api/generated/openapi.json` with the new upstream spec
+2. `make generate-client` — review `client.gen.go` diff for changed/added/removed API methods or types
+3. `make generate-resources` — review **all** `*_resource_gen.go` diffs:
+   - New field: decide whether to add it to `schema.ignores` or expose it (and update `flattenTag`/CRUD)
+   - Removed field: the compiler will catch it — fix the implementation file
+   - Type change: the compiler will catch it — fix the implementation file
+4. `go build ./...` to confirm no errors, then commit everything together
+
+### Manual customisation
+- **Never edit `*_gen.go` files** — changes will be silently overwritten on the next `make generate-resources`
+- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): add a post-processing patch block in the implementation file's `Schema()` method — see `tag_resource.go` for the pattern
+- **Description overrides**: add an `attributes.overrides` entry in `generator_config.yaml` under the resource's `schema:` key — these persist across spec updates
+- **Spec typos or structural fixes**: add a transformation to `scripts/fix-openapi-nullable.py` rather than editing `openapi.json` directly
 
 ## Conventions
 
 - **Framework**: always use `terraform-plugin-framework`. Imports from `terraform-plugin-sdk/v2` are banned by the linter.
-- **Generated code**: `client.gen.go` and anything under `*.gen.go` is machine-generated — fix issues upstream (spec or config), not in the generated file.
+- **Generated code**: `client.gen.go` and `*_resource_gen.go` are machine-generated — fix issues upstream (spec or `generator_config.yaml`), not in the generated files.
 - **OpenAPI spec fixes**: if `api/generated/openapi.json` has issues that block codegen, add a transformation to `scripts/fix-openapi-nullable.py` rather than editing the spec directly.
 - **ADRs**: document significant architectural decisions in `docs/ADRs/` using the `NNNN-title.md` naming convention.
 - **No global state**: the provider must support aliases for multi-MAAS deployments — avoid package-level variables.
