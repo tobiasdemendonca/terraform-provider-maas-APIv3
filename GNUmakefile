@@ -85,7 +85,14 @@ scaffold-function: ## Scaffold a new function: make scaffold-function NAME=<name
 	@test -n "$(NAME)" || (echo "Usage: make scaffold-function NAME=<name>"; exit 1)
 	tfplugingen-framework scaffold function    -force -name $(NAME) -output-dir internal/provider/ -package provider
 
-.PHONY: help fmt lint test testacc build install generate generate-client create-dev-overrides scaffold-resource scaffold-datasource scaffold-function
+generate-resources: ## Regenerate provider schemas from api/generated/openapi.json + api/generator_config.yaml
+	python3 scripts/fix-openapi-nullable.py api/generated/openapi.json api/generated/openapi.converted.json
+	tfplugingen-openapi generate \
+		--config api/generator_config.yaml \
+		--output api/generated/provider-code-spec.json \
+		api/generated/openapi.converted.json
+	tfplugingen-framework generate resources \
+		--input api/generated/provider-code-spec.json \
+		--output internal/provider
 
-_generate-resources:
-	tfplugingen-framework generate resources --input ./api/generated/provider-code-spec.json --output internal/provider
+.PHONY: help fmt lint test testacc build install generate generate-client generate-resources create-dev-overrides scaffold-resource scaffold-datasource scaffold-function

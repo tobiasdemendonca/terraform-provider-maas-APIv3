@@ -34,8 +34,9 @@ website/vendor
 # Keep windows files with windows line endings
 *.winfile eol=crlf
 
-# Client generation
-api/openapi.converted.json
+# Code generation intermediates (both pipelines derive these from openapi.json)
+api/generated/openapi.converted.json
+api/generated/provider-code-spec.json
 
 # Dev env
 .devenv/*
