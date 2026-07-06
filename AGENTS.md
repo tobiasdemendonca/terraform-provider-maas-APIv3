@@ -71,13 +71,12 @@ openapi.json → fix-openapi-nullable.py → openapi.converted.json
 Intermediate files (`openapi.converted.json`, `provider-code-spec.json`) are gitignored — they are fully derivable and committing them creates drift risk. Final Go artifacts (`client.gen.go`, `*_resource_gen.go`) **are** committed so that `go build` works without any generators installed and so that spec changes are visible as a reviewable `git diff`.
 
 ### Adding a new resource
-1. Add the resource entry to `generator_config.yaml` — paths, methods, and `schema.ignores` for any API noise fields (`_embedded`, `_links`, `kind`, etc.)
-2. `make generate-resources` — creates `internal/provider/resource_<name>/<name>_resource_gen.go`
-3. Write `internal/provider/<name>_resource.go` — call the generated schema function, patch in plan modifiers, implement CRUD using the generated model struct
-4. Register in `provider.go`
-5. Commit `generator_config.yaml` + `*_gen.go` + `*_resource.go` together
+Ignore the make generate-resources target — it is experimental at this point in time. To add a new resource, follow these steps:
+1. Run `make scaffold-resource NAME=<resource name>` — where resource name is the name of the new resource — Implement CRUD using the generated model struct
+2. Register in `provider.go`
 
 ### Updating `openapi.json` (spec bump)
+This should be done if the upstream OpenAPI spec has changed. Ignore this for most PRs.
 1. Replace `api/generated/openapi.json` with the new upstream spec
 2. `make generate-client` — review `client.gen.go` diff for changed/added/removed API methods or types
 3. `make generate-resources` — review **all** `*_resource_gen.go` diffs:
@@ -100,7 +99,6 @@ Intermediate files (`openapi.converted.json`, `provider-code-spec.json`) are git
 - **ADRs**: document significant architectural decisions in `docs/ADRs/` using the `NNNN-title.md` naming convention.
 - **No global state**: the provider must support aliases for multi-MAAS deployments — avoid package-level variables.
 
-## 
 ## Key Constraints
 
 - Acceptance tests must be idempotent (no trailing resources, no changed config values).
