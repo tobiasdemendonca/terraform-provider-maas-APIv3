@@ -1,11 +1,10 @@
-// Copyright IBM Corp. 2021, 2025
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework/path"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -17,8 +16,8 @@ import (
 	"terraform-provider-maas-apiv3/internal/client/maasclientv3"
 )
 
-// Ensure the implementation satisfies the expected interfaces.
 var _ resource.Resource = (*fabricResource)(nil)
+var _ resource.ResourceWithImportState = (*fabricResource)(nil)
 
 func NewFabricResource() resource.Resource {
 	return &fabricResource{}
@@ -68,6 +67,10 @@ func (r *fabricResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 			},
 		},
 	}
+}
+
+func (r *fabricResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *fabricResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
