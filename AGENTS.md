@@ -77,6 +77,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 - Prefer MAAS-native filters over client-side iteration - the provider must scale to thousands of machines.
 - Avoid comments almost always. Only add comments when the code is non-obvious or the reasoning is not captured in the ADRs.
 - In public facing descriptions, avoid deviating from the MAAS API terminology unless there is a compelling reason to do so.
+- **Comment style**: plain ASCII only (no arrows, no special characters). One-liner comments like `// Create with name only` — never number steps. Describe behavior, not who does it (`coerced to ""`, not `server coerces to ""`). Use MAAS terminology (`can be null in MAAS`, `not nullable in MAAS`) — not database jargon (`nullable column`, `NOT NULL column`).
 
 ## Nullability, Optional/Computed/Default, and the MAAS type system
 
