@@ -99,7 +99,7 @@ func (p *MaasProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		return
 	}
 
-	// Plain client — no auth editor — used only for login calls inside tokenManager.
+	// Plain client with no auth editor, used only for login calls inside tokenManager.
 	authClient, err := maasclientv3.NewClientWithResponses(url)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create MAAS auth client", err.Error())
@@ -149,7 +149,7 @@ func New(version string) func() provider.Provider {
 	}
 }
 
-// resolveMaasConfig returns url, username, password — preferring explicit
+// resolveMaasConfig returns url, username, password, preferring explicit
 // provider config over environment variables.
 func resolveMaasConfig(config MaasProviderModel) (url, username, password string) {
 	url = os.Getenv(MaasURLEnvKey)

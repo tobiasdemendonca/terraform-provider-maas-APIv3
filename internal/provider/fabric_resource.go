@@ -47,13 +47,13 @@ func (r *fabricResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 		Attributes: map[string]schema.Attribute{
 			"class_type": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Optional class type for the fabric.", // DB null=True, NULL is meaningful, so optional-only.
+				MarkdownDescription: "Optional class type for the fabric.", // Can be null in MAAS and null is meaningful, so optional-only.
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "The description of the fabric.",
-				Default:             stringdefault.StaticString(""), // DB NOT NULL in MAAS, so default to "" to match the read value.
+				Default:             stringdefault.StaticString(""), // Not nullable in MAAS, so default to "" to match the read value.
 			},
 			"id": schema.Int64Attribute{
 				Computed:            true,
@@ -170,7 +170,8 @@ func (r *fabricResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 	if apiResp.StatusCode() == 404 {
-		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddError("Error updating fabric",
+			fmt.Sprintf("Fabric %d no longer exists; it was deleted outside of Terraform. The next plan will propose recreating it.", data.Id.ValueInt64()))
 		return
 	}
 	if apiResp.JSON200 == nil {
@@ -202,8 +203,8 @@ func (r *fabricResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 // flattenFabric maps the API response into the Terraform state model.
 // See AGENTS.md (Unmarshal section): same response type (*string), different
-// flatten per DB semantics — description (NOT NULL) coerces nil→""; class_type
-// (null=True) preserves nil→null.
+// flatten per MAAS semantics. description is not nullable in MAAS, so nil is
+// coerced to ""; class_type can be null in MAAS, so nil is preserved as null.
 func flattenFabric(fabric *maasclientv3.FabricResponse, data *fabricResourceModel) {
 	data.Id = types.Int64Value(int64(fabric.Id))
 	if fabric.Name != nil {
@@ -214,13 +215,13 @@ func flattenFabric(fabric *maasclientv3.FabricResponse, data *fabricResourceMode
 	if fabric.Description != nil {
 		data.Description = types.StringValue(*fabric.Description)
 	} else {
-		// DB is NOT NULL; nil here is loose API typing over a ""-canonical field.
+		// Not nullable in MAAS; nil here is loose API typing over a ""-canonical field.
 		data.Description = types.StringValue("")
 	}
 	if fabric.ClassType != nil {
 		data.ClassType = types.StringValue(*fabric.ClassType)
 	} else {
-		// DB allows NULL; nil is a real, meaningful value.
+		// Can be null in MAAS; nil is a real, meaningful value.
 		data.ClassType = types.StringNull()
 	}
 }

@@ -24,7 +24,7 @@ func TestAccFabricResource(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckMAASFabricDestroy,
 		Steps: []resource.TestStep{
-			// Create with name only — class_type and description omitted
+			// Create with name only, class_type and description omitted
 			{
 				Config: testAccFabricConfig(name, nil, nil),
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -45,7 +45,7 @@ func TestAccFabricResource(t *testing.T) {
 					),
 				},
 			},
-			// Update — set class_type and description to real values and change the name
+			// Update: set class_type and description to real values and change the name
 			{
 				Config: testAccFabricConfig(nameUpdated, strPtr("10g"), strPtr("my description")),
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -72,7 +72,7 @@ func TestAccFabricResource(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Update — set class_type="" and description="" explicitly
+			// Update: set class_type="" and description="" explicitly
 			{
 				Config: testAccFabricConfig(name, strPtr(""), strPtr("")),
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -88,9 +88,9 @@ func TestAccFabricResource(t *testing.T) {
 					),
 				},
 			},
-			// Update — remove class_type and description from config entirely
-			// class_type: omitted → null (can be null in MAAS)
-			// description: omitted → coerced to "" (not nullable in MAAS, expecting "")
+			// Update: remove class_type and description from config entirely
+			// class_type: omitted becomes null (can be null in MAAS)
+			// description: omitted is coerced to "" (not nullable in MAAS)
 			{
 				Config: testAccFabricConfig(name, nil, nil),
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -106,8 +106,8 @@ func TestAccFabricResource(t *testing.T) {
 					),
 				},
 			},
-			// Create a second fabric with a duplicate name — expect a 409 error,
-			// no new resource is created
+			// Create a second fabric with a duplicate name, expect a 409 error
+			// and no new resource created
 			{
 				Config:      testAccFabricConfig(name, nil, nil) + testAccFabricDuplicateConfig(name),
 				ExpectError: regexp.MustCompile("already exists"),

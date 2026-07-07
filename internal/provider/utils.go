@@ -47,7 +47,7 @@ func apiError(status string, body []byte) string {
 // field. Null and unknown values become nil; any known value, including "",
 // becomes a pointer to it. Whether nil is then sent as an explicit JSON null
 // or omitted from the request depends on the generated request struct's JSON
-// tags — see the Marshal section of AGENTS.md.
+// tags; see the Marshal section of AGENTS.md.
 func optionalString(s types.String) *string {
 	if s.IsNull() || s.IsUnknown() {
 		return nil
