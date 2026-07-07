@@ -64,7 +64,7 @@ func (r *fabricResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The unique name of the fabric. May be changed in place (update is keyed by ID, not name).",
+				MarkdownDescription: "The unique name of the fabric.",
 			},
 		},
 	}

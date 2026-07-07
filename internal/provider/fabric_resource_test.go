@@ -1,22 +1,27 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccFabricResource(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-fabric-")
+	nameUpdated := "updated-" + name
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckMAASFabricDestroy,
 		Steps: []resource.TestStep{
 			// Create with name only — class_type and description omitted
 			{
@@ -39,10 +44,15 @@ func TestAccFabricResource(t *testing.T) {
 					),
 				},
 			},
-			// Update — set class_type and description to real values
+			// Update — set class_type and description to real values and change the name
 			{
-				Config: testAccFabricConfig(name, strPtr("10g"), strPtr("my description")),
+				Config: testAccFabricConfig(nameUpdated, strPtr("10g"), strPtr("my description")),
 				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"maas_fabric.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(nameUpdated),
+					),
 					statecheck.ExpectKnownValue(
 						"maas_fabric.test",
 						tfjsonpath.New("class_type"),
@@ -120,4 +130,32 @@ resource "maas_fabric" "test" {
   %s%s
 }
 `, name, descriptionAttr, classTypeAttr)
+}
+
+// Verify that the fabric resource has been destroyed in MAAS.
+func testAccCheckMAASFabricDestroy(s *terraform.State) error {
+	client, err := testAccNewClient()
+	if err != nil {
+		return err
+	}
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "maas_fabric" {
+			continue
+		}
+		fabricID, err := strconv.Atoi(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		apiResp, err := client.GetFabricWithResponse(context.Background(), fabricID)
+		if err != nil {
+			return fmt.Errorf("error getting fabric: %s", err)
+		}
+		if apiResp.StatusCode() != 404 {
+			return fmt.Errorf("fabric with id %d still exists (API returned %s)", fabricID, apiResp.Status())
+		}
+	}
+
+	return nil
 }
