@@ -21,7 +21,7 @@ api/
     openapi.converted.json       # gitignored — intermediate, produced by both generate-* targets
     provider-code-spec.json      # gitignored — intermediate, produced by tfplugingen-openapi
 docs/
-  ADRs/                          # Architecture Decision Records (NNNN-title.md)
+  decisions/                     # Architecture Decision Records (NNNN-title.md)
 internal/
   client/
     maasclientv3/
@@ -69,7 +69,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 - **Framework**: always use `terraform-plugin-framework`. Imports from `terraform-plugin-sdk/v2` are banned by the linter.
 - **Generated code**: `client.gen.go` and `*_resource_gen.go` are machine-generated — fix issues upstream (spec or `generator_config.yaml`), not in the generated files.
 - **OpenAPI spec fixes**: if `api/generated/openapi.json` has issues that block codegen, add a transformation to `scripts/fix-openapi-nullable.py` rather than editing the spec directly.
-- **ADRs**: document significant architectural decisions in `docs/ADRs/` using the `NNNN-title.md` naming convention.
+- **ADRs**: document significant architectural decisions in `docs/decisions/` using the `NNNN-title.md` naming convention. See `docs/decisions/0001-record-architecture-decisions.md` for when to write one.
 - **No global state**: the provider must support aliases for multi-MAAS deployments — avoid package-level variables.
 
 - Acceptance tests must be idempotent (no trailing resources, no changed config values).
