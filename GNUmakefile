@@ -24,7 +24,7 @@ PLUGIN_DIR ?= ~/.terraform.d/plugins/$(PROVIDER_HOSTNAME)/$(PROVIDER_NAMESPACE)/
 
 install: build ## Install provider into the local filesystem mirror (~/.terraform.d/plugins/...)
 	@mkdir -p $(PLUGIN_DIR)
-	mv $(BIN)/$(BINARY) $(PLUGIN_DIR)/$(BINARY)
+	cp $(BIN)/$(BINARY) $(PLUGIN_DIR)/$(BINARY)
 
 DEV_TFRC ?= $(CURDIR)/dev.tfrc
 
