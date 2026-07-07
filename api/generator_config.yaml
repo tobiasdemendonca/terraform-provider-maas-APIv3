@@ -4,36 +4,3 @@ provider:
   
 
 resources:
-  tag:
-    create:
-      path: /MAAS/a/v3/tags
-      method: POST
-    read:
-      path: /MAAS/a/v3/tags/{tag_id}
-      method: GET
-    update:
-      path: /MAAS/a/v3/tags/{tag_id}
-      method: PUT
-    delete:
-      path: /MAAS/a/v3/tags/{tag_id}
-      method: DELETE
-    schema:
-      ignores:
-        - _embedded
-        - _links
-        - kind
-        - tag_id
-
-  ssh_keys:
-    create:
-      path: /MAAS/a/v3/users/me/sshkeys
-      method: POST
-    import:
-      path: /MAAS/a/v3/users/me/sshkeys/import
-      method: POST
-    read:
-      path: /MAAS/a/v3/users/me/sshkeys/{sshkey_id}
-      method: GET
-    delete:
-      path: /MAAS/a/v3/users/me/sshkeys/{id}
-      method: DELETE

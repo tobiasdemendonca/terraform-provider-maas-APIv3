@@ -24,7 +24,7 @@ PLUGIN_DIR ?= ~/.terraform.d/plugins/$(PROVIDER_HOSTNAME)/$(PROVIDER_NAMESPACE)/
 
 install: build ## Install provider into the local filesystem mirror (~/.terraform.d/plugins/...)
 	@mkdir -p $(PLUGIN_DIR)
-	mv $(BIN)/$(BINARY) $(PLUGIN_DIR)/$(BINARY)
+	cp $(BIN)/$(BINARY) $(PLUGIN_DIR)/$(BINARY)
 
 DEV_TFRC ?= $(CURDIR)/dev.tfrc
 
@@ -67,11 +67,17 @@ api/generated/openapi.converted.json: api/generated/openapi.json
 fmt: ## Run gofmt across the codebase
 	gofmt -s -w -e .
 
-test: ## Run unit tests
-	go test -v -cover -timeout=120s -parallel=10 ./...
+test: ## Run unit tests (use TESTARGS to filter, e.g. TESTARGS="-run=TestExampleFunction")
+	go test -v -timeout=120s -parallel=10 ./... $(TESTARGS)
 
-testacc: ## Run acceptance tests (requires live MAAS and TF_ACC=1)
-	TF_ACC=1 go test -v -cover -timeout 120m ./...
+# MAAS connection for acceptance tests. Set via env vars:
+#   TF_MAAS_URL  (e.g. http://10.10.0.28:5240)
+#   TF_MAAS_USER
+#   TF_MAAS_PWD
+TESTARGS ?=
+
+testacc: ## Run acceptance tests (requires live MAAS; set TF_MAAS_URL/USER/PWD env vars; use TESTARGS to filter, e.g. TESTARGS="-run=TestAccFabricResource_basic")
+	TF_ACC=1 go test -v -timeout 120m ./... $(TESTARGS)
 
 scaffold-resource: ## Scaffold a new resource: make scaffold-resource NAME=<name>
 	@test -n "$(NAME)" || (echo "Usage: make scaffold-resource NAME=<name>"; exit 1)
