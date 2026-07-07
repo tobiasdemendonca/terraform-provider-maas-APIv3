@@ -23,17 +23,22 @@ resources:
         - _links
         - kind
         - tag_id
-
-  ssh_keys:
+  fabric:
     create:
-      path: /MAAS/a/v3/users/me/sshkeys
-      method: POST
-    import:
-      path: /MAAS/a/v3/users/me/sshkeys/import
+      path: /MAAS/a/v3/fabrics
       method: POST
     read:
-      path: /MAAS/a/v3/users/me/sshkeys/{sshkey_id}
+      path: /MAAS/a/v3/fabrics/{fabric_id}
       method: GET
+    update:
+      path: /MAAS/a/v3/fabrics/{fabric_id}
+      method: PUT
     delete:
-      path: /MAAS/a/v3/users/me/sshkeys/{id}
+      path: /MAAS/a/v3/fabrics/{fabric_id}
       method: DELETE
+    schema:
+      ignores:
+        - _embedded
+        - _links
+        - kind
+        - vlans

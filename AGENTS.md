@@ -7,29 +7,15 @@ Terraform provider for the MAAS API v3, built on the [Terraform Plugin Framework
 The Go client is auto-generated from the OpenAPI spec via `oapi-codegen`.
 
 
-
-Module: `terraform-provider-maas-apiv3`
-
 ## Essential Commands
 
-```sh
-make build              # compile
-make install            # build and install binary to $GOPATH/bin
-make generate           # run go generate (docs, etc.)
-make generate-client    # regenerate internal/client/.../client.gen.go from openapi.json
-make generate-resources # regenerate internal/provider/resource_*/[name]_resource_gen.go from openapi.json + generator_config.yaml
-make fmt                # gofmt
-make lint               # golangci-lint
-make test               # unit tests
-make testacc            # acceptance tests (requires live MAAS + TF_ACC=1)
-make create-dev-overrides  # write dev.tfrc for local provider testing
-```
+See the `Makefile` for a full list of commands. Use them where possible rather than running commands directly. 
 
 ## Project Layout
 
 ```
 api/
-  generator_config.yaml          # pipeline B config — add resources, paths, schema.ignores here
+  generator_config.yaml          # experimental pipeline — add resources, paths, schema.ignores here
   generated/
     openapi.json                 # upstream MAAS OpenAPI spec (source of truth for both pipelines)
     openapi.converted.json       # gitignored — intermediate, produced by both generate-* targets
@@ -52,28 +38,15 @@ tools/
 GNUmakefile
 ```
 
-## Code Generation
+## Generated files
 
-Two independent pipelines both source from `api/generated/openapi.json`.
-
-**Pipeline A — API client** (`make generate-client`)
-```
-openapi.json → fix-openapi-nullable.py → openapi.converted.json → oapi-codegen → client.gen.go
-```
-
-**Pipeline B — Provider schemas** (`make generate-resources`)
-```
-openapi.json → fix-openapi-nullable.py → openapi.converted.json
-    → tfplugingen-openapi (uses generator_config.yaml) → provider-code-spec.json
-    → tfplugingen-framework → internal/provider/resource_<name>/<name>_resource_gen.go
-```
-
-Intermediate files (`openapi.converted.json`, `provider-code-spec.json`) are gitignored — they are fully derivable and committing them creates drift risk. Final Go artifacts (`client.gen.go`, `*_resource_gen.go`) **are** committed so that `go build` works without any generators installed and so that spec changes are visible as a reviewable `git diff`.
+Intermediate files (`openapi.converted.json`, `provider-code-spec.json`) are gitignored — they are fully derivable and committing them creates drift risk. Final Go artifacts (`client.gen.go`, `*_resource_gen.go`) **are** committed so that `go build` works without any generators installed and so that spec changes are visible as a reviewable `git diff`. Never write to generated files by hand - fix the spec or generator config instead.
 
 ### Adding a new resource
 Ignore the make generate-resources target — it is experimental at this point in time. To add a new resource, follow these steps:
-1. Run `make scaffold-resource NAME=<resource name>` — where resource name is the name of the new resource — Implement CRUD using the generated model struct
-2. Register in `provider.go`
+1. Run `make scaffold-resource NAME=<resource name>` — where resource name is the name of the new resource
+2. Implement CRUD using the principles outlined in the [Key Principles](#key-principles) section below
+3. Register in `provider.go`
 
 ### Updating `openapi.json` (spec bump)
 This should be done if the upstream OpenAPI spec has changed. Ignore this for most PRs.
@@ -87,7 +60,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 
 ### Manual customisation
 - **Never edit `*_gen.go` files** — changes will be silently overwritten on the next `make generate-resources`
-- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): add a post-processing patch block in the implementation file's `Schema()` method — see `tag_resource.go` for the pattern
+- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): set directly on the attribute in the implementation file's inline `Schema()` method. Never use the post-processing mutation pattern (`s.Attributes["name"].(schema.StringAttribute); ...`) when the schema is written inline. It panics if the generated schema is empty. See `fabric_resource.go` for the ideal pattern.
 - **Description overrides**: add an `attributes.overrides` entry in `generator_config.yaml` under the resource's `schema:` key — these persist across spec updates
 - **Spec typos or structural fixes**: add a transformation to `scripts/fix-openapi-nullable.py` rather than editing `openapi.json` directly
 
@@ -99,8 +72,86 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 - **ADRs**: document significant architectural decisions in `docs/ADRs/` using the `NNNN-title.md` naming convention.
 - **No global state**: the provider must support aliases for multi-MAAS deployments — avoid package-level variables.
 
-## Key Constraints
-
 - Acceptance tests must be idempotent (no trailing resources, no changed config values).
 - Resources must handle external deletion gracefully (check for missing state in Read, remove from state rather than erroring).
-- Prefer MAAS-native filters over client-side iteration — the provider must scale to thousands of machines.
+- Prefer MAAS-native filters over client-side iteration - the provider must scale to thousands of machines.
+
+## Nullability, Optional/Computed/Default, and the MAAS type system
+
+### The single decision point
+
+For every optional attribute, ask one question: **what does MAAS store for "absent"?**
+
+- **A known non-null literal** (`""`, `0`, `false`) → `Optional + Computed + Default(literal)`.
+- **`NULL`** → `Optional` only. No `Default`, no `Computed`.
+
+Do not read the answer off the API request type (`str` vs `str | None`) — that's the wrong layer. The OpenAPI/Go request type tells you what the wire *accepts*, not what the server *stores*. Read it off the **DB column nullability + the response shape**.
+
+### The three MAAS layers behind the spec
+
+The OpenAPI spec describes wire *types*, not runtime *behavior*. Three server layers sit behind it, and each can change what you actually read back:
+
+1. **Pydantic request validators** (`maas/src/maasapiserver/v3/api/public/models/requests/<resource>.py`): `@field_validator` can normalize input — e.g. `FabricRequest.description` coerces `null → ""`. Invisible in the spec.
+2. **Database column constraints** (`maas/src/maasserver/models/<resource>.py` or `maas/src/maasservicelayer/db/tables.py`): `null=False` means the value can never be stored as null, regardless of what the spec says. This is the ground truth for what round-trips as null.
+3. **Service-layer hooks** (`maas/src/maasservicelayer/services/<resource>.py`): `pre_*`/`post_*` hooks can mutate, cascade, or reject.
+
+When a field's null-vs-empty behavior matters (perpetual diffs, drift, can't-clear), verify against all three layers, not just the spec.
+
+### The four schema attribute patterns
+
+| Pattern | Schema | When to use |
+|---|---|---|
+| **Required** | `Required: true` | User must set; no null. |
+| **Optional-only** | `Optional: true` | Absent is a real, storable `NULL` (DB `null=True`). Null round-trips; clear-to-null works. |
+| **Optional + Computed + Default** | `Optional: true, Computed: true, Default: stringdefault.StaticString("")` | Absent normalizes to a known literal (DB `NOT NULL`, `""` canonical). `Computed` is *forced* by `Default` — the framework rejects a `Default` without `Computed`. Clear-to-literal works because the Default fires on null config during update too. |
+| **Optional + Computed (no Default)** | `Optional: true, Computed: true` | Server genuinely populates a value the user didn't set (server-side default, hardware discovery, server-managed list members). **Has the clear-to-null trap** — only use when the server really computes. |
+
+**Why `Computed` appears in pattern 3 vs 4 — different reasons:**
+- Pattern 3: `Computed` is a *mechanical requirement* of `stringdefault.StaticString("")`. It does **not** mean "server computes a value" — it's the price of admission for a schema-level default.
+- Pattern 4: `Computed` genuinely means "the provider/server may set this." No `Default` because the server's contributed value isn't a static literal.
+
+### The two traps to avoid
+
+**Trap A — perpetual diff on literal-absent fields without a Default.**
+Omit → config null → send omitted → API stores `""` → Read returns `""` → state `""` → next plan: config null vs state `""` → diff forever. The `Default` fixes it by making null config → `""` in the plan.
+
+**Trap B — can't clear a value when `Computed` is present without a Default.**
+User sets `field = "x"`, later removes it → config null, prior state `"x"` → framework preserves prior state for Computed attributes → plan `"x"` → re-sends `"x"` → never clears. The `Default` unlocks clearing-to-literal. For clearing-to-null (pattern 2), you must use `Optional`-only — `Computed` would trap the value.
+
+### The generator's limitation
+
+`make generate-resources` cannot express null defaults — the framework's `Default` plan modifiers only supply non-null typed values, so there is no `stringdefault.StaticNull()`. For any optional field whose spec default is `null`, the generator falls back to `Optional + Computed` (no Default) — **the trap pattern**. This is why `class_type` in `resource_fabric/fabric_resource_gen.go` is wrong (it should be `Optional`-only). Always hand-review generated schemas against the DB column + response shape.
+
+### Marshal: `types.String` → `*string` (Create/Update request bodies)
+
+Use the `optionalString` helper (see `tag_resource.go` / `fabric_resource.go`):
+```go
+func optionalString(s types.String) *string {
+    if s.IsNull() || s.IsUnknown() {
+        return nil
+    }
+    v := s.ValueString()
+    return &v
+}
+```
+When a `Default` has fired (pattern 3), the plan value is the literal `""` (known, non-null), so this returns `&""`. When the field is genuinely null (pattern 2, no Default), it returns `nil`.
+
+**Wire behavior of `nil` depends on the Go struct's JSON tags:**
+- `*string` + `omitempty` (e.g. `TagRequest`): nil → key **omitted** from JSON → API applies its own default. Cannot emit literal `null`.
+- `*string` without `omitempty` (e.g. `FabricRequest`): nil → `"field": null` (explicit). Works when the API accepts null (`str | None`).
+
+Both are fine for their respective APIs. The gotcha: **PATCH (partial-update) endpoints**, where omitting a key means "leave unchanged" and clearing requires explicit `null` — an `omitempty` struct couldn't clear. Check the method + struct tags when adapting.
+
+### Unmarshal: response → `types.String` (Read/flatten)
+
+The flatten function's input is the **response** struct, so its code must be written against the response's Go field types and the server's storage semantics — never the request's. State is a mirror of what the server *holds*, and the response is the server's report of that.
+
+Same response Go type (`*string`), different flatten — driven by DB semantics:
+- **DB `NOT NULL`, response loosely typed `*string` but practically `""`** (fabric `description`): `nil → types.StringValue("")` (defensive coercion; null is loose typing over a `""`-canonical field).
+- **DB `null=True`, response genuinely nullable** (fabric `class_type`): `nil → types.StringNull()` (null is meaningful state).
+
+For response fields that are plain `string` (non-pointer, e.g. `TagResponse.Comment`), `types.StringValue(tag.Comment)` is correct — no nil possible.
+
+### Worked examples
+
+See `tag_resource.go` (all fields `NOT NULL` → `Default("")`) and `fabric_resource.go` (mixed: `description` `NOT NULL` → `Default("")`; `class_type` `null=True` → `Optional`-only). Both files are annotated with the reasoning.
