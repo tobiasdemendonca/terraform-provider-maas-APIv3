@@ -127,7 +127,7 @@ User sets `field = "x"`, later removes it → config null, prior state `"x"` →
 
 ### Marshal: `types.String` → `*string` (Create/Update request bodies)
 
-Use the `optionalString` helper (see `tag_resource.go` / `fabric_resource.go`):
+Use the `optionalString` helper (see `utils.go`):
 ```go
 func optionalString(s types.String) *string {
     if s.IsNull() || s.IsUnknown() {

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -105,8 +106,29 @@ func TestAccFabricResource(t *testing.T) {
 					),
 				},
 			},
+			// Create a second fabric with a duplicate name — expect a 409 error,
+			// no new resource is created
+			{
+				Config:      testAccFabricConfig(name, nil, nil) + testAccFabricDuplicateConfig(name),
+				ExpectError: regexp.MustCompile("already exists"),
+			},
+			// Return to the single-resource config so the test ends on a clean,
+			// no-diff state
+			{
+				Config: testAccFabricConfig(name, nil, nil),
+			},
 		},
 	})
+}
+
+// testAccFabricDuplicateConfig builds a second fabric resource with the given
+// name, used to provoke a name conflict.
+func testAccFabricDuplicateConfig(name string) string {
+	return fmt.Sprintf(`
+resource "maas_fabric" "dup" {
+  name = %q
+}
+`, name)
 }
 
 func strPtr(s string) *string {

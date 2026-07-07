@@ -202,11 +202,3 @@ func flattenTag(tag *maasclientv3.TagResponse, data *resource_tag.TagModel) {
 	data.Definition = types.StringValue(tag.Definition)
 	data.KernelOpts = types.StringValue(tag.KernelOpts)
 }
-
-func optionalString(s types.String) *string {
-	if s.IsNull() || s.IsUnknown() {
-		return nil
-	}
-	v := s.ValueString()
-	return &v
-}
