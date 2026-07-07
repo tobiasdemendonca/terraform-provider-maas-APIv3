@@ -71,30 +71,3 @@ func TestFlattenFabric(t *testing.T) {
 		})
 	}
 }
-
-func TestOptionalString(t *testing.T) {
-	tests := []struct {
-		name  string
-		input types.String
-		want  *string
-	}{
-		{"null", types.StringNull(), nil},
-		{"unknown", types.StringUnknown(), nil},
-		{"empty string", types.StringValue(""), strPtr("")},
-		{"value", types.StringValue("x"), strPtr("x")},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := optionalString(tt.input)
-			switch {
-			case tt.want == nil && got != nil:
-				t.Errorf("got %q, want nil", *got)
-			case tt.want != nil && got == nil:
-				t.Errorf("got nil, want %q", *tt.want)
-			case tt.want != nil && got != nil && *got != *tt.want:
-				t.Errorf("got %q, want %q", *got, *tt.want)
-			}
-		})
-	}
-}

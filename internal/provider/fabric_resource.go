@@ -118,7 +118,7 @@ func (r *fabricResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	if apiResp.JSON201 == nil {
-		resp.Diagnostics.AddError("Error creating fabric", fmt.Sprintf("API returned %s", apiResp.Status()))
+		resp.Diagnostics.AddError("Error creating fabric", apiError(apiResp.Status(), apiResp.Body))
 		return
 	}
 
@@ -143,7 +143,7 @@ func (r *fabricResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 	if apiResp.JSON200 == nil {
-		resp.Diagnostics.AddError("Error reading fabric", fmt.Sprintf("API returned %s", apiResp.Status()))
+		resp.Diagnostics.AddError("Error reading fabric", apiError(apiResp.Status(), apiResp.Body))
 		return
 	}
 
@@ -174,7 +174,7 @@ func (r *fabricResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 	if apiResp.JSON200 == nil {
-		resp.Diagnostics.AddError("Error updating fabric", fmt.Sprintf("API returned %s", apiResp.Status()))
+		resp.Diagnostics.AddError("Error updating fabric", apiError(apiResp.Status(), apiResp.Body))
 		return
 	}
 
@@ -196,7 +196,7 @@ func (r *fabricResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 	// 204 = deleted; 404 = already gone. Both are success.
 	if apiResp.StatusCode() != 204 && apiResp.StatusCode() != 404 {
-		resp.Diagnostics.AddError("Error deleting fabric", fmt.Sprintf("API returned %s", apiResp.Status()))
+		resp.Diagnostics.AddError("Error deleting fabric", apiError(apiResp.Status(), apiResp.Body))
 	}
 }
 
