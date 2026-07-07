@@ -11,21 +11,33 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"terraform-provider-maas-apiv3/internal/client/maasclientv3"
 	"terraform-provider-maas-apiv3/internal/provider/resource_tag"
 )
 
+// Ensure the implementation satisfies the expected interfaces.
 var _ resource.Resource = (*tagResource)(nil)
+
+// var _ resource.ResourceWithImportState = (*tagResource)(nil)
 
 func NewTagResource() resource.Resource {
 	return &tagResource{}
 }
 
+// Define the resource implementation.
 type tagResource struct {
 	client *maasclientv3.ClientWithResponses
+}
+
+type TagModel struct {
+	Comment    types.String `tfsdk:"comment"`
+	Definition types.String `tfsdk:"definition"`
+	Id         types.Int64  `tfsdk:"id"`
+	KernelOpts types.String `tfsdk:"kernel_opts"`
+	Name       types.String `tfsdk:"name"`
 }
 
 func (r *tagResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -33,18 +45,43 @@ func (r *tagResource) Metadata(_ context.Context, req resource.MetadataRequest, 
 }
 
 func (r *tagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	s := resource_tag.TagResourceSchema(ctx)
-	s.MarkdownDescription = "Manages a MAAS tag."
-
-	nameAttr := s.Attributes["name"].(schema.StringAttribute)
-	nameAttr.PlanModifiers = []planmodifier.String{stringplanmodifier.RequiresReplace()}
-	s.Attributes["name"] = nameAttr
-
-	idAttr := s.Attributes["id"].(schema.Int64Attribute)
-	idAttr.PlanModifiers = []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}
-	s.Attributes["id"] = idAttr
-
-	resp.Schema = s
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Manages a MAAS tag.",
+		Attributes: map[string]schema.Attribute{
+			"comment": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "A description of what fhe tag will be used for in natural language.",
+				MarkdownDescription: "A description of what fhe tag will be used for in natural language.",
+				Default:             stringdefault.StaticString(""),
+			},
+			"definition": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "An XPATH query that is evaluated againstthe hardware_details stored for all nodes (i.e. the output of ``lshw -xml``).",
+				MarkdownDescription: "An XPATH query that is evaluated againstthe hardware_details stored for all nodes (i.e. the output of ``lshw -xml``).",
+				Default:             stringdefault.StaticString(""),
+			},
+			"id": schema.Int64Attribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"kernel_opts": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Nodes associated with this tag will add this string to their kernel options when booting. The value overrides the global ``kernel_opts`` setting. If more than one tag is associated with a node, command line will be concatenated from all associated tags, in alphabetic tag name order.",
+				MarkdownDescription: "Nodes associated with this tag will add this string to their kernel options when booting. The value overrides the global ``kernel_opts`` setting. If more than one tag is associated with a node, command line will be concatenated from all associated tags, in alphabetic tag name order.",
+				Default:             stringdefault.StaticString(""),
+			},
+			"name": schema.StringAttribute{
+				Required:            true,
+				Description:         "The new tag name. Because the name will be used in urls, it should be short.",
+				MarkdownDescription: "The new tag name. Because the name will be used in urls, it should be short.",
+			},
+		},
+	}
 }
 
 func (r *tagResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
