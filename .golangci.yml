@@ -29,6 +29,11 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # Test helpers are single-caller templates; unparam produces noise for them.
+      - path: _test\.go$
+        linters:
+          - unparam
   settings:
     depguard:
       rules:
