@@ -71,13 +71,41 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 - **OpenAPI spec fixes**: if `api/generated/openapi.json` has issues that block codegen, add a transformation to `scripts/fix-openapi-nullable.py` rather than editing the spec directly.
 - **ADRs**: document significant architectural decisions in `docs/decisions/` using the `NNNN-title.md` naming convention. See `docs/decisions/0001-record-architecture-decisions.md` for when to write one.
 - **No global state**: the provider must support aliases for multi-MAAS deployments — avoid package-level variables.
+- **id attribute**: every resource exposes an `id` attribute — the acceptance-test harness populates `rs.Primary.ID` from it and the destroy checks depend on it.
+- **Shared helpers**: live in `internal/provider/utils.go`, in-package and unexported. Promote to a real package only when a second consumer package exists.
+- **Linter disagreements**: fix once in `.golangci.yml` (e.g. `unparam` is excluded for `_test.go` files) — never scatter `//nolint` suppressions that every copier must repeat.
 
-- Acceptance tests must be idempotent (no trailing resources, no changed config values).
-- Resources must handle external deletion gracefully (check for missing state in Read, remove from state rather than erroring).
 - Prefer MAAS-native filters over client-side iteration - the provider must scale to thousands of machines.
 - Avoid comments almost always. Only add comments when the code is non-obvious or the reasoning is not captured in the ADRs.
 - In public facing descriptions, avoid deviating from the MAAS API terminology unless there is a compelling reason to do so.
 - **Comment style**: plain ASCII only (no arrows, no special characters). One-liner comments like `// Create with name only` — never number steps. Describe behavior, not who does it (`coerced to ""`, not `server coerces to ""`). Use MAAS terminology (`can be null in MAAS`, `not nullable in MAAS`) — not database jargon (`nullable column`, `NOT NULL column`).
+
+## CRUD implementation
+
+See `docs/decisions/0004-api-error-surfacing-and-404-semantics.md` for the reasoning; `fabric_resource.go` is the exemplar.
+
+- Create and Update read request data from the plan, not the config — plan modifiers may have set values.
+- Create surfaces already-exists errors with import guidance: practitioners expect to be told to import rather than have two configurations silently manage one resource.
+- Read refreshes every attribute (surfaces drift, reduces import logic). Preserve the prior state value when the refreshed value is semantically equal (e.g. JSON property order or whitespace differences) to avoid extraneous diffs.
+- Update returns only successfully modified data in the state response.
+- 404 handling: Read removes state (external deletion is a normal event), Update adds an explicit error (never remove state there — the framework converts a null post-Update state into a misleading provider-bug message), Delete treats it as success.
+- Use `UseStateForUnknown` on Computed attributes that are stable across updates, to avoid known-after-apply noise in plans.
+- Every unexpected-status fallback goes through `apiError` (`utils.go`) so diagnostics carry the server's own message. Special-case a status only when the provider can add guidance the server cannot know (e.g. 409: suggest importing).
+
+## Acceptance testing
+
+See `docs/decisions/0005-acceptance-testing-strategy.md` for the reasoning; `fabric_resource_test.go` is the exemplar.
+
+- One resource instance per test, driven through the full lifecycle: create, updates, import, error steps (409 duplicate, 422 invalid input — failed applies persist nothing), and an out-of-band-delete drift step. Tests must be idempotent and leave no trailing resources.
+- Assert plan behavior with `plancheck.ExpectResourceAction` on every apply step — the framework alone does not fail a destroy-and-recreate masquerading as an update.
+- Verify against MAAS, not just state: a per-resource `CheckExists` after each apply and a `CheckDestroy` built from the generic `testAccCheckDestroy` helper (`acctest_test.go`), both using the out-of-band client `testAccNewClient`.
+- Cover omitted vs empty vs set for every optional attribute — these are the regressions the nullability patterns exist to prevent.
+- Unit-test flatten/marshal helpers with table tests; nil-handling must not need a live server to verify.
+- Skip tests that need heavy fixtures (e.g. delete blocked by subnets), and document why.
+- `ExpectError` regexes use `\s+` between words — Terraform wraps diagnostics at about 78 columns.
+- One behavior per config change per step, or a failure will not say which behavior broke.
+- Prefer state-derived ids (`rs.Primary.ID`) over captured variables. Captured ids are only for `PreConfig`, which has no state access; every step that changes the resource's identity must carry the exists check so captured ids stay fresh.
+- Verify framework-behavior claims empirically (e.g. break Delete and watch CheckDestroy fail) rather than by assertion.
 
 ## Nullability, Optional/Computed/Default, and the MAAS type system
 

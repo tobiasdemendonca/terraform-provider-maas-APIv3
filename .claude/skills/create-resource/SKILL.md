@@ -28,23 +28,10 @@ Follow these steps in order:
    - Use types from the generated client (`internal/client/maasclientv3/client.gen.go`) for API calls
    - Use `terraform-plugin-framework` — never import `terraform-plugin-sdk/v2`
    - Map all create/read/update/delete operations through the generated client
-   - Follow Terraform best practices for resource implementation:
-   - `Read`:
-    - Ignore returning errors that signify the resource is no longer existent, call the response state RemoveResource() method, and return early. The next Terraform plan will recreate the resource.
-    - Refresh all possible values. This will ensure Terraform shows configuration drift and reduces import logic.
-    - Preserve the prior state value if the updated value is semantically equal. For example, JSON strings that have inconsequential object property reordering or whitespace differences. This prevents Terraform from showing extraneous drift in plans.
-   - `Delete`: 
-    - If the API returns 404, consider it a success (the resource is already gone). Skip calling the response state RemoveResource() method. The framework automatically handles this logic with the response state if there are no error diagnostics.
-   - `Update`: 
-    - Get request data from the Terraform plan data over configuration data as the schema or resource may include plan modification logic which sets plan values. 
-    - Only successfully modified parts of the resource should be return updated data in the state response.
-    - Use the resource.UseStateForUnknown() attribute plan modifier for Computed attributes that are known to not change during resource updates. This will enhance the Terraform plan to not show => (known after apply) differences.
-  - `Create`: 
-   - Get request data from the Terraform plan data over configuration data as the schema or resource may include plan modification logic which sets plan values.
-   - Return errors that signify there is an existing resource. Terraform practitioners expect to be notified if an existing resource needs to be imported into Terraform rather than created. This prevents situations where multiple Terraform configurations unexpectedly manage the same underlying resource.
+   - Follow the **CRUD implementation** and **Nullability** sections in `AGENTS.md` (rationale in `docs/decisions/0003` and `0004`). `internal/provider/fabric_resource.go` is the exemplar.
 
 8. **Verify** — Run `make lint fmt`, then `make build` to verify it compiles.
 
 9. **Example** — Add 1 or more examples of the resource in `.devenv/main.tf` that tests its functionality for the user's own QA. Inform them. 
 
-10. **Remind** — let the user know they should write acceptance tests. Tests must be idempotent and leave no trailing resources.
+10. **Test** — Write acceptance tests following the **Acceptance testing** section in `AGENTS.md` (rationale in `docs/decisions/0005`), with `internal/provider/fabric_resource_test.go` as the exemplar.
