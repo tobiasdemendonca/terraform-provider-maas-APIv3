@@ -4,22 +4,3 @@ provider:
   
 
 resources:
-  tag:
-    create:
-      path: /MAAS/a/v3/tags
-      method: POST
-    read:
-      path: /MAAS/a/v3/tags/{tag_id}
-      method: GET
-    update:
-      path: /MAAS/a/v3/tags/{tag_id}
-      method: PUT
-    delete:
-      path: /MAAS/a/v3/tags/{tag_id}
-      method: DELETE
-    schema:
-      ignores:
-        - _embedded
-        - _links
-        - kind
-        - tag_id
