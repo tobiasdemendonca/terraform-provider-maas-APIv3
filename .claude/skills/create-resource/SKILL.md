@@ -28,10 +28,10 @@ Follow these steps in order:
    - Use types from the generated client (`internal/client/maasclientv3/client.gen.go`) for API calls
    - Use `terraform-plugin-framework` — never import `terraform-plugin-sdk/v2`
    - Map all create/read/update/delete operations through the generated client
-   - Follow the **CRUD implementation** and **Nullability** sections in `AGENTS.md` (rationale in `docs/decisions/0003` and `0004`). `internal/provider/fabric_resource.go` is the exemplar.
+   - Follow the **CRUD implementation** and **Nullability** sections in `AGENTS.md` (rationale in `docs/decisions/0003` and `0004`). `internal/provider/fabric_resource.go` is the exemplar (don't compare in comments with it in other resources).
 
 8. **Verify** — Run `make lint fmt`, then `make build` to verify it compiles.
 
 9. **Example** — Add 1 or more examples of the resource in `.devenv/main.tf` that tests its functionality for the user's own QA. Inform them. 
 
-10. **Test** — Write acceptance tests following the **Acceptance testing** section in `AGENTS.md` (rationale in `docs/decisions/0005`), with `internal/provider/fabric_resource_test.go` as the exemplar.
+10. **Test** — Write acceptance tests following the **Acceptance testing** section in `AGENTS.md` (rationale in `docs/decisions/0005`), with `internal/provider/fabric_resource_test.go` as the exemplar (don't compare in comments with it in other resources).

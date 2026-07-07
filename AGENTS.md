@@ -60,7 +60,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 
 ### Manual customisation
 - **Never edit `*_gen.go` files** — changes will be silently overwritten on the next `make generate-resources`
-- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): set directly on the attribute in the implementation file's inline `Schema()` method. Never use the post-processing mutation pattern (`s.Attributes["name"].(schema.StringAttribute); ...`) when the schema is written inline. It panics if the generated schema is empty. See `fabric_resource.go` for the ideal pattern.
+- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): set directly on the attribute in the implementation file's inline `Schema()` method. Never use the post-processing mutation pattern (`s.Attributes["name"].(schema.StringAttribute); ...`) when the schema is written inline. It panics if the generated schema is empty. See `fabric_resource.go` for the ideal pattern (don't compare in comments with it in other resources).
 - **Description overrides**: add an `attributes.overrides` entry in `generator_config.yaml` under the resource's `schema:` key — these persist across spec updates
 - **Spec typos or structural fixes**: add a transformation to `scripts/fix-openapi-nullable.py` rather than editing `openapi.json` directly
 
@@ -82,7 +82,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 
 ## CRUD implementation
 
-See `docs/decisions/0004-api-error-surfacing-and-404-semantics.md` for the reasoning; `fabric_resource.go` is the exemplar.
+See `docs/decisions/0004-api-error-surfacing-and-404-semantics.md` for the reasoning; `fabric_resource.go` is the exemplar (don't compare in comments with it in other resources).
 
 - Create and Update read request data from the plan, not the config — plan modifiers may have set values.
 - Create surfaces already-exists errors with import guidance: practitioners expect to be told to import rather than have two configurations silently manage one resource.
@@ -94,7 +94,7 @@ See `docs/decisions/0004-api-error-surfacing-and-404-semantics.md` for the reaso
 
 ## Acceptance testing
 
-See `docs/decisions/0005-acceptance-testing-strategy.md` for the reasoning; `fabric_resource_test.go` is the exemplar.
+See `docs/decisions/0005-acceptance-testing-strategy.md` for the reasoning; `fabric_resource_test.go` is the exemplar (don't compare in comments with it in other resources).
 
 - One resource instance per test, driven through the full lifecycle: create, updates, import, error steps (409 duplicate, 422 invalid input — failed applies persist nothing), and an out-of-band-delete drift step. Tests must be idempotent and leave no trailing resources.
 - Assert plan behavior with `plancheck.ExpectResourceAction` on every apply step — the framework alone does not fail a destroy-and-recreate masquerading as an update.
@@ -185,4 +185,4 @@ For response fields that are plain `string` (non-pointer, e.g. `TagResponse.Comm
 
 ### Worked examples
 
-See `tag_resource.go` (all fields `NOT NULL` → `Default("")`) and `fabric_resource.go` (mixed: `description` `NOT NULL` → `Default("")`; `class_type` `null=True` → `Optional`-only). Both files are annotated with the reasoning.
+See `tag_resource.go` (all fields `NOT NULL` → `Default("")`) and `fabric_resource.go` (mixed: `description` `NOT NULL` → `Default("")`; `class_type` `null=True` → `Optional`-only) (don't compare in comments with it in other resources). Both files are annotated with the reasoning.
