@@ -29,17 +29,7 @@ type fabricResource struct {
 	client *maasclientv3.ClientWithResponses
 }
 
-// fabricResourceModel is the Terraform state model for a MAAS fabric.
-//
-// Field nullability mirrors what MAAS *stores* for "absent", not what the
-// API request accepts (see the tag resource for the full rule):
-//   - description: DB column NOT NULL, canonical absent value is "". Modeled
-//     with a schema Default("") so null/omitted normalizes to "" and the
-//     field can be cleared back to "". Computed is required by Default.
-//   - class_type: DB column null=True; NULL is a real, storable value.
-//     Modeled Optional-only so null round-trips and the field can be cleared
-//     to null. No Computed, no Default (Computed without a Default would trap
-//     the prior value and prevent clearing).
+// The Terraform state model for the fabric resource.
 type fabricResourceModel struct {
 	ClassType   types.String `tfsdk:"class_type"`
 	Description types.String `tfsdk:"description"`
@@ -56,16 +46,14 @@ func (r *fabricResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 		MarkdownDescription: "Manages a MAAS fabric.",
 		Attributes: map[string]schema.Attribute{
 			"class_type": schema.StringAttribute{
-				Optional: true,
-				MarkdownDescription: "Optional class type for the fabric. Omit or set to null to clear. " +
-					"Unlike `description`, this field is genuinely nullable: MAAS stores NULL when absent.",
+				Optional:            true,
+				MarkdownDescription: "Optional class type for the fabric.", // DB null=True, NULL is meaningful, so optional-only.
 			},
 			"description": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				MarkdownDescription: "The description of the fabric. Defaults to an empty string. " +
-					"The MAAS DB stores \"\" for absent (NOT NULL), so null normalizes to \"\".",
-				Default: stringdefault.StaticString(""),
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "The description of the fabric.",
+				Default:             stringdefault.StaticString(""), // DB NOT NULL in MAAS, so default to "" to match the read value.
 			},
 			"id": schema.Int64Attribute{
 				Computed:            true,
@@ -75,9 +63,8 @@ func (r *fabricResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"name": schema.StringAttribute{
-				Required: true,
-				MarkdownDescription: "The unique name of the fabric. The name may be changed in place; " +
-					"MAAS does not require replacement (the update endpoint is keyed by ID).",
+				Required:            true,
+				MarkdownDescription: "The unique name of the fabric. May be changed in place (update is keyed by ID, not name).",
 			},
 		},
 	}
@@ -114,15 +101,13 @@ func (r *fabricResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.AddError("Error creating fabric", err.Error())
 		return
 	}
-	// A 409 means a fabric with this name already exists. Practitioners should
-	// import the existing resource rather than letting Terraform recreate it.
+
 	if apiResp.StatusCode() == 409 {
 		resp.Diagnostics.AddError("Error creating fabric",
-			fmt.Sprintf("A fabric with the name %q already exists. Import the existing fabric "+
-				"with `terraform import <address> <fabric_id>` instead of creating it.",
-				data.Name.ValueString()))
+			fmt.Sprintf("A fabric with the name %q already exists. Use a different name or import the existing fabric", data.Name.ValueString()))
 		return
 	}
+
 	if apiResp.JSON201 == nil {
 		resp.Diagnostics.AddError("Error creating fabric", fmt.Sprintf("API returned %s", apiResp.Status()))
 		return
@@ -207,13 +192,9 @@ func (r *fabricResource) Delete(ctx context.Context, req resource.DeleteRequest,
 }
 
 // flattenFabric maps the API response into the Terraform state model.
-//
-// The response type (*string) is the same for description and class_type, but
-// they flatten differently because their DB semantics differ:
-//   - description: DB NOT NULL, "" canonical -> a nil response (loose typing
-//     in the API model) is coerced to "" so state matches the canonical form.
-//   - class_type: DB null=True, NULL is meaningful -> a nil response is
-//     preserved as null in state so it round-trips and can be cleared.
+// See AGENTS.md (Unmarshal section): same response type (*string), different
+// flatten per DB semantics — description (NOT NULL) coerces nil→""; class_type
+// (null=True) preserves nil→null.
 func flattenFabric(fabric *maasclientv3.FabricResponse, data *fabricResourceModel) {
 	data.Id = types.Int64Value(int64(fabric.Id))
 	if fabric.Name != nil {

@@ -75,6 +75,8 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 - Acceptance tests must be idempotent (no trailing resources, no changed config values).
 - Resources must handle external deletion gracefully (check for missing state in Read, remove from state rather than erroring).
 - Prefer MAAS-native filters over client-side iteration - the provider must scale to thousands of machines.
+- Avoid comments almost always. Only add comments when the code is non-obvious or the reasoning is not captured in the ADRs.
+- In public facing descriptions, avoid deviating from the MAAS API terminology unless there is a compelling reason to do so.
 
 ## Nullability, Optional/Computed/Default, and the MAAS type system
 
