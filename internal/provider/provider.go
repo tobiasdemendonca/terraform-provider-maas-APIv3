@@ -136,6 +136,7 @@ func (p *MaasProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewFabricResource,
 		NewResourcePoolResource,
+		NewSpaceResource,
 		NewZoneResource,
 	}
 }
