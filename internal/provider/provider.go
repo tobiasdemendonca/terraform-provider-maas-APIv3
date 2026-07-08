@@ -135,6 +135,7 @@ func (p *MaasProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 func (p *MaasProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewFabricResource,
+		NewZoneResource,
 	}
 }
 
