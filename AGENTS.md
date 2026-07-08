@@ -53,7 +53,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 1. Replace `api/generated/openapi.json` with the new upstream spec
 2. `make generate-client` — review `client.gen.go` diff for changed/added/removed API methods or types
 3. `make generate-resources` — review **all** `*_resource_gen.go` diffs:
-   - New field: decide whether to add it to `schema.ignores` or expose it (and update `flattenTag`/CRUD)
+   - New field: decide whether to add it to `schema.ignores`
    - Removed field: the compiler will catch it — fix the implementation file
    - Type change: the compiler will catch it — fix the implementation file
 4. `go build ./...` to confirm no errors, then commit everything together
@@ -181,8 +181,8 @@ Same response Go type (`*string`), different flatten — driven by DB semantics:
 - **DB `NOT NULL`, response loosely typed `*string` but practically `""`** (fabric `description`): `nil → types.StringValue("")` (defensive coercion; null is loose typing over a `""`-canonical field).
 - **DB `null=True`, response genuinely nullable** (fabric `class_type`): `nil → types.StringNull()` (null is meaningful state).
 
-For response fields that are plain `string` (non-pointer, e.g. `TagResponse.Comment`), `types.StringValue(tag.Comment)` is correct — no nil possible.
+For response fields that are plain `string` (non-pointer), `types.StringValue(value)` is correct — no nil possible.
 
 ### Worked examples
 
-See `tag_resource.go` (all fields `NOT NULL` → `Default("")`) and `fabric_resource.go` (mixed: `description` `NOT NULL` → `Default("")`; `class_type` `null=True` → `Optional`-only) (don't compare in comments with it in other resources). Both files are annotated with the reasoning.
+See `fabric_resource.go` (mixed: `description` `NOT NULL` → `Default("")`; `class_type` `null=True` → `Optional`-only) (don't compare in comments with it in other resources). Both files are annotated with the reasoning.
