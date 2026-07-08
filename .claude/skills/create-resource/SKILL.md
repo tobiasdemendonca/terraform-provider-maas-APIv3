@@ -12,7 +12,7 @@ Follow these steps in order:
 
 3. Explore the `api/generated/openapi.json` and `internal/client/maasclientv3/client.gen.go` files to understand the available API endpoints and data structures. 
 
-4. Execute the grill-me skill found in `.claude/skills/grill-me/` to stress-test and form a clear resource design picture. Use the existing `tag` entry as an example of a clean pattern.
+4. Execute the grill-me skill found in `.claude/skills/grill-me/` to stress-test and form a clear resource design picture. Use the existing `fabric` entry as an example of a clean pattern.
    
 4. Write a plan and show me the plan before asking if it needs to be revised before executing the next steps. The plan should include:
    - The resource name and a brief description of its purpose.
@@ -22,7 +22,7 @@ Follow these steps in order:
 
 5. **Scaffold the resource** — run `make scaffold-resource NAME=<name>` (using the snake_case name). This creates `internal/provider/<name>_resource.go`.
 
-6. **Register the resource** — add `New<Name>Resource` to the slice in `Resources()` in `internal/provider/provider.go`, following the existing `NewTagResource` pattern.
+6. **Register the resource** — add `New<Name>Resource` to the slice in `Resources()` in `internal/provider/provider.go`, following the existing `NewFabricResource` pattern.
 
 7. **Implement the resource** — fill in the scaffolded file:
    - Use types from the generated client (`internal/client/maasclientv3/client.gen.go`) for API calls
