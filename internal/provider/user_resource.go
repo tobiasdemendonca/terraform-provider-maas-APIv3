@@ -16,18 +16,18 @@ import (
 	"terraform-provider-maas-apiv3/internal/client/maasclientv3"
 )
 
-var _ resource.Resource = (*maasUserResource)(nil)
-var _ resource.ResourceWithImportState = (*maasUserResource)(nil)
+var _ resource.Resource = (*userResource)(nil)
+var _ resource.ResourceWithImportState = (*userResource)(nil)
 
-func NewMaasUserResource() resource.Resource {
-	return &maasUserResource{}
+func NewUserResource() resource.Resource {
+	return &userResource{}
 }
 
-type maasUserResource struct {
+type userResource struct {
 	client *maasclientv3.ClientWithResponses
 }
 
-type maasUserResourceModel struct {
+type userResourceModel struct {
 	Email                 types.String `tfsdk:"email"`
 	FirstName             types.String `tfsdk:"first_name"`
 	Groups                types.List   `tfsdk:"groups"`
@@ -39,11 +39,11 @@ type maasUserResourceModel struct {
 	Username              types.String `tfsdk:"username"`
 }
 
-func (r *maasUserResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *userResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_user"
 }
 
-func (r *maasUserResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *userResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a MAAS user.",
 		Attributes: map[string]schema.Attribute{
@@ -98,7 +98,7 @@ func (r *maasUserResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 	}
 }
 
-func (r *maasUserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *userResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	username := req.ID
 	users, err := r.client.ListUsersWithResponse(ctx, &maasclientv3.ListUsersParams{
 		UsernameOrEmail: &username,
@@ -121,7 +121,7 @@ func (r *maasUserResource) ImportState(ctx context.Context, req resource.ImportS
 		fmt.Sprintf("No user with username %q was found.", username))
 }
 
-func (r *maasUserResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *userResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -134,8 +134,8 @@ func (r *maasUserResource) Configure(_ context.Context, req resource.ConfigureRe
 	r.client = data.Client
 }
 
-func (r *maasUserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data maasUserResourceModel
+func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data userResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -143,7 +143,7 @@ func (r *maasUserResource) Create(ctx context.Context, req resource.CreateReques
 
 	// WriteOnly attributes are nullified in the plan by the framework; read
 	// them from config.
-	var config maasUserResourceModel
+	var config userResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -178,8 +178,8 @@ func (r *maasUserResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *maasUserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data maasUserResourceModel
+func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data userResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -213,14 +213,14 @@ func (r *maasUserResource) Read(ctx context.Context, req resource.ReadRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *maasUserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data maasUserResourceModel
+func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data userResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var state maasUserResourceModel
+	var state userResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -228,7 +228,7 @@ func (r *maasUserResource) Update(ctx context.Context, req resource.UpdateReques
 
 	// WriteOnly attributes are nullified in the plan by the framework; read
 	// them from config.
-	var config maasUserResourceModel
+	var config userResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -268,8 +268,8 @@ func (r *maasUserResource) Update(ctx context.Context, req resource.UpdateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *maasUserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data maasUserResourceModel
+func (r *userResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data userResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -292,7 +292,7 @@ func (r *maasUserResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func flattenUser(user *maasclientv3.UserResponse, data *maasUserResourceModel) {
+func flattenUser(user *maasclientv3.UserResponse, data *userResourceModel) {
 	data.Id = types.Int64Value(int64(user.Id))
 	data.Username = types.StringValue(user.Username)
 	data.FirstName = types.StringValue(user.FirstName)

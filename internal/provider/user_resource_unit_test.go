@@ -13,7 +13,7 @@ func TestFlattenUser(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    maasclientv3.UserResponse
-		expected maasUserResourceModel
+		expected userResourceModel
 	}{
 		{
 			name: "all fields set",
@@ -25,7 +25,7 @@ func TestFlattenUser(t *testing.T) {
 				Email:     strPtr("alice@example.com"),
 				Groups:    []maasclientv3.UserGroupSummaryResponse{{Id: 1, Name: "admins"}},
 			},
-			expected: maasUserResourceModel{
+			expected: userResourceModel{
 				Id:        types.Int64Value(42),
 				Username:  types.StringValue("alice"),
 				FirstName: types.StringValue("Alice"),
@@ -44,7 +44,7 @@ func TestFlattenUser(t *testing.T) {
 				Email:     nil,
 				Groups:    []maasclientv3.UserGroupSummaryResponse{},
 			},
-			expected: maasUserResourceModel{
+			expected: userResourceModel{
 				Id:        types.Int64Value(7),
 				Username:  types.StringValue("bob"),
 				FirstName: types.StringValue("Bob"),
@@ -66,7 +66,7 @@ func TestFlattenUser(t *testing.T) {
 					{Id: 3, Name: "users"},
 				},
 			},
-			expected: maasUserResourceModel{
+			expected: userResourceModel{
 				Id:        types.Int64Value(100),
 				Username:  types.StringValue("carol"),
 				FirstName: types.StringValue("Carol"),
@@ -79,7 +79,7 @@ func TestFlattenUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var data maasUserResourceModel
+			var data userResourceModel
 			flattenUser(&tt.input, &data)
 			if !data.Id.Equal(tt.expected.Id) {
 				t.Errorf("Id: got %v, want %v", data.Id, tt.expected.Id)

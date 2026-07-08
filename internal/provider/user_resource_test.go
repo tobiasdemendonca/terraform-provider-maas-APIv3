@@ -18,7 +18,7 @@ import (
 	"terraform-provider-maas-apiv3/internal/client/maasclientv3"
 )
 
-func TestAccMaasUserResource(t *testing.T) {
+func TestAccUserResource(t *testing.T) {
 	username := acctest.RandomWithPrefix("tf-user")
 	usernameUpdated := username + "-updated"
 	emailUpdated := username + "-updated@example.com"
@@ -30,13 +30,13 @@ func TestAccMaasUserResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckMaasUserDestroy,
+		CheckDestroy:             testAccCheckUserDestroy,
 		Steps: []resource.TestStep{
 			// Create with required fields only; email omitted (can be null in MAAS)
 			{
-				Config: testAccMaasUserConfig(username, "First", "Last", nil, password, "1"),
+				Config: testAccUserConfig(username, "First", "Last", nil, password, "1"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccMaasUserCheckExists("maas_user.test", &userID),
+					testAccUserCheckExists("maas_user.test", &userID),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -69,9 +69,9 @@ func TestAccMaasUserResource(t *testing.T) {
 			// Update: change username, first_name, last_name, set email, bump
 			// password version
 			{
-				Config: testAccMaasUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", strPtr(emailUpdated), passwordUpdated, "2"),
+				Config: testAccUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", strPtr(emailUpdated), passwordUpdated, "2"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccMaasUserCheckExists("maas_user.test", &userID),
+					testAccUserCheckExists("maas_user.test", &userID),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -117,9 +117,9 @@ func TestAccMaasUserResource(t *testing.T) {
 			},
 			// Clear email back to null (can be null in MAAS)
 			{
-				Config: testAccMaasUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, passwordUpdated, "2"),
+				Config: testAccUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, passwordUpdated, "2"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccMaasUserCheckExists("maas_user.test", &userID),
+					testAccUserCheckExists("maas_user.test", &userID),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -137,9 +137,9 @@ func TestAccMaasUserResource(t *testing.T) {
 			// Update password version without changing other fields; password
 			// is applied, no other attribute changes
 			{
-				Config: testAccMaasUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, "ThirdP8ssw0rd", "3"),
+				Config: testAccUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, "ThirdP8ssw0rd", "3"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccMaasUserCheckExists("maas_user.test", &userID),
+					testAccUserCheckExists("maas_user.test", &userID),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -149,22 +149,22 @@ func TestAccMaasUserResource(t *testing.T) {
 			},
 			// Attempt to create a user with a duplicate username, expect 409
 			{
-				Config: testAccMaasUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, passwordUpdated, "2") +
-					testAccMaasUserDuplicateConfig(usernameUpdated),
+				Config: testAccUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, passwordUpdated, "2") +
+					testAccUserDuplicateConfig(usernameUpdated),
 				ExpectError: regexp.MustCompile(`already\s+exists`),
 			},
 			// Attempt to update with an invalid email, expect 422
 			{
-				Config:      testAccMaasUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", strPtr("not-an-email"), passwordUpdated, "2"),
+				Config:      testAccUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", strPtr("not-an-email"), passwordUpdated, "2"),
 				ExpectError: regexp.MustCompile(`valid\s+email`),
 			},
 			// Delete the user outside of Terraform, expect refresh to detect
 			// drift and plan to recreate
 			{
-				PreConfig: testAccDeleteMaasUserByID(t, &userID),
-				Config:    testAccMaasUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, passwordUpdated, "2"),
+				PreConfig: testAccDeleteUserByID(t, &userID),
+				Config:    testAccUserConfig(usernameUpdated, "UpdatedFirst", "UpdatedLast", nil, passwordUpdated, "2"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccMaasUserCheckExists("maas_user.test", &userID),
+					testAccUserCheckExists("maas_user.test", &userID),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -176,7 +176,7 @@ func TestAccMaasUserResource(t *testing.T) {
 	})
 }
 
-var testAccCheckMaasUserDestroy = testAccCheckDestroy("maas_user",
+var testAccCheckUserDestroy = testAccCheckDestroy("maas_user",
 	func(ctx context.Context, client *maasclientv3.ClientWithResponses, id int) (bool, error) {
 		apiResp, err := client.GetUserWithResponse(ctx, id)
 		if err != nil {
@@ -192,7 +192,7 @@ var testAccCheckMaasUserDestroy = testAccCheckDestroy("maas_user",
 		}
 	})
 
-func testAccMaasUserCheckExists(rn string, userID *int) resource.TestCheckFunc {
+func testAccUserCheckExists(rn string, userID *int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -223,7 +223,7 @@ func testAccMaasUserCheckExists(rn string, userID *int) resource.TestCheckFunc {
 	}
 }
 
-func testAccDeleteMaasUserByID(t *testing.T, id *int) func() {
+func testAccDeleteUserByID(t *testing.T, id *int) func() {
 	return func() {
 		client, err := testAccNewClient()
 		if err != nil {
@@ -239,7 +239,7 @@ func testAccDeleteMaasUserByID(t *testing.T, id *int) func() {
 	}
 }
 
-func testAccMaasUserConfig(username, firstName, lastName string, email *string, passwordWo, passwordWoVersion string) string {
+func testAccUserConfig(username, firstName, lastName string, email *string, passwordWo, passwordWoVersion string) string {
 	emailLine := ""
 	if email != nil {
 		emailLine = fmt.Sprintf("  email               = %q\n", *email)
@@ -255,7 +255,7 @@ resource "maas_user" "test" {
 `, username, firstName, lastName, emailLine, passwordWo, passwordWoVersion)
 }
 
-func testAccMaasUserDuplicateConfig(username string) string {
+func testAccUserDuplicateConfig(username string) string {
 	return fmt.Sprintf(`
 resource "maas_user" "duplicate" {
   username            = %q
