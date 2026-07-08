@@ -21,11 +21,11 @@ api/
     openapi.converted.json       # gitignored — intermediate, produced by both generate-* targets
     provider-code-spec.json      # gitignored — intermediate, produced by tfplugingen-openapi
 docs/
-  decisions/                     # Architecture Decision Records (NNNN-title.md)
+  decisions/                     # Architecture Decision Records (NNNN-title.md) - Reference these to understand key design decisions in this project
 internal/
   client/
     maasclientv3/
-      oapi-codegen.yaml          # pipeline A codegen config
+      oapi-codegen.yaml          # Config for oapi-codegen to generate the Go client from the OpenAPI spec
       client.gen.go              # generated — do not edit by hand
   provider/
     resource_<name>/
@@ -56,11 +56,11 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
    - New field: decide whether to add it to `schema.ignores`
    - Removed field: the compiler will catch it — fix the implementation file
    - Type change: the compiler will catch it — fix the implementation file
-4. `go build ./...` to confirm no errors, then commit everything together
+4. `make build` to confirm no errors, then commit everything together
 
 ### Manual customisation
 - **Never edit `*_gen.go` files** — changes will be silently overwritten on the next `make generate-resources`
-- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): set directly on the attribute in the implementation file's inline `Schema()` method. Never use the post-processing mutation pattern (`s.Attributes["name"].(schema.StringAttribute); ...`) when the schema is written inline. It panics if the generated schema is empty. See `fabric_resource.go` for the ideal pattern (don't compare in comments with it in other resources).
+- **Plan modifiers** (`RequiresReplace`, `UseStateForUnknown`): set directly on the attribute in the implementation file's inline `Schema()` method. Never use the post-processing mutation pattern (`s.Attributes["name"].(schema.StringAttribute); ...`) when the schema is written inline. See `fabric_resource.go` for the ideal pattern (don't compare in comments with it in other resources).
 - **Description overrides**: add an `attributes.overrides` entry in `generator_config.yaml` under the resource's `schema:` key — these persist across spec updates
 - **Spec typos or structural fixes**: add a transformation to `scripts/fix-openapi-nullable.py` rather than editing `openapi.json` directly
 
@@ -69,7 +69,7 @@ This should be done if the upstream OpenAPI spec has changed. Ignore this for mo
 - **Framework**: always use `terraform-plugin-framework`. Imports from `terraform-plugin-sdk/v2` are banned by the linter.
 - **Generated code**: `client.gen.go` and `*_resource_gen.go` are machine-generated — fix issues upstream (spec or `generator_config.yaml`), not in the generated files.
 - **OpenAPI spec fixes**: if `api/generated/openapi.json` has issues that block codegen, add a transformation to `scripts/fix-openapi-nullable.py` rather than editing the spec directly.
-- **ADRs**: document significant architectural decisions in `docs/decisions/` using the `NNNN-title.md` naming convention. See `docs/decisions/0001-record-architecture-decisions.md` for when to write one.
+- **ADRs/decisions**: document significant architectural decisions in `docs/decisions/` using the `NNNN-title.md` naming convention. See `docs/decisions/0001-record-architecture-decisions.md` for when to write one.
 - **No global state**: the provider must support aliases for multi-MAAS deployments — avoid package-level variables.
 - **id attribute**: every resource exposes an `id` attribute — the acceptance-test harness populates `rs.Primary.ID` from it and the destroy checks depend on it.
 - **Shared helpers**: live in `internal/provider/utils.go`, in-package and unexported. Promote to a real package only when a second consumer package exists.
@@ -92,24 +92,9 @@ See `docs/decisions/0004-api-error-surfacing-and-404-semantics.md` for the reaso
 - Use `UseStateForUnknown` on Computed attributes that are stable across updates, to avoid known-after-apply noise in plans.
 - Every unexpected-status fallback goes through `apiError` (`utils.go`) so diagnostics carry the server's own message. Special-case a status only when the provider can add guidance the server cannot know (e.g. 409: suggest importing).
 
-## Acceptance testing
+### Nullability, Optional/Computed/Default, and the MAAS type system
 
-See `docs/decisions/0005-acceptance-testing-strategy.md` for the reasoning; `fabric_resource_test.go` is the exemplar (don't compare in comments with it in other resources).
-
-- One resource instance per test, driven through the full lifecycle: create, updates, import, error steps (409 duplicate, 422 invalid input — failed applies persist nothing), and an out-of-band-delete drift step. Tests must be idempotent and leave no trailing resources.
-- Assert plan behavior with `plancheck.ExpectResourceAction` on every apply step — the framework alone does not fail a destroy-and-recreate masquerading as an update.
-- Verify against MAAS, not just state: a per-resource `CheckExists` after each apply and a `CheckDestroy` built from the generic `testAccCheckDestroy` helper (`acctest_test.go`), both using the out-of-band client `testAccNewClient`.
-- Cover omitted vs empty vs set for every optional attribute — these are the regressions the nullability patterns exist to prevent.
-- Unit-test flatten/marshal helpers with table tests; nil-handling must not need a live server to verify.
-- Skip tests that need heavy fixtures (e.g. delete blocked by subnets), and document why.
-- `ExpectError` regexes use `\s+` between words — Terraform wraps diagnostics at about 78 columns.
-- One behavior per config change per step, or a failure will not say which behavior broke.
-- Prefer state-derived ids (`rs.Primary.ID`) over captured variables. Captured ids are only for `PreConfig`, which has no state access; every step that changes the resource's identity must carry the exists check so captured ids stay fresh.
-- Verify framework-behavior claims empirically (e.g. break Delete and watch CheckDestroy fail) rather than by assertion.
-
-## Nullability, Optional/Computed/Default, and the MAAS type system
-
-### The single decision point
+#### The single decision point
 
 For every optional attribute, ask one question: **what does MAAS store for "absent"?**
 
@@ -118,7 +103,7 @@ For every optional attribute, ask one question: **what does MAAS store for "abse
 
 Do not read the answer off the API request type (`str` vs `str | None`) — that's the wrong layer. The OpenAPI/Go request type tells you what the wire *accepts*, not what the server *stores*. Read it off the **DB column nullability + the response shape**.
 
-### The three MAAS layers behind the spec
+#### The three MAAS layers behind the spec
 
 The OpenAPI spec describes wire *types*, not runtime *behavior*. Three server layers sit behind it, and each can change what you actually read back:
 
@@ -128,7 +113,7 @@ The OpenAPI spec describes wire *types*, not runtime *behavior*. Three server la
 
 When a field's null-vs-empty behavior matters (perpetual diffs, drift, can't-clear), verify against all three layers, not just the spec.
 
-### The four schema attribute patterns
+#### The four schema attribute patterns
 
 | Pattern | Schema | When to use |
 |---|---|---|
@@ -141,7 +126,7 @@ When a field's null-vs-empty behavior matters (perpetual diffs, drift, can't-cle
 - Pattern 3: `Computed` is a *mechanical requirement* of `stringdefault.StaticString("")`. It does **not** mean "server computes a value" — it's the price of admission for a schema-level default.
 - Pattern 4: `Computed` genuinely means "the provider/server may set this." No `Default` because the server's contributed value isn't a static literal.
 
-### The two traps to avoid
+#### The two traps to avoid
 
 **Trap A — perpetual diff on literal-absent fields without a Default.**
 Omit → config null → send omitted → API stores `""` → Read returns `""` → state `""` → next plan: config null vs state `""` → diff forever. The `Default` fixes it by making null config → `""` in the plan.
@@ -149,7 +134,7 @@ Omit → config null → send omitted → API stores `""` → Read returns `""` 
 **Trap B — can't clear a value when `Computed` is present without a Default.**
 User sets `field = "x"`, later removes it → config null, prior state `"x"` → framework preserves prior state for Computed attributes → plan `"x"` → re-sends `"x"` → never clears. The `Default` unlocks clearing-to-literal. For clearing-to-null (pattern 2), you must use `Optional`-only — `Computed` would trap the value.
 
-### The generator's limitation
+#### The generator's limitation
 
 `make generate-resources` cannot express null defaults — the framework's `Default` plan modifiers only supply non-null typed values, so there is no `stringdefault.StaticNull()`. For any optional field whose spec default is `null`, the generator falls back to `Optional + Computed` (no Default) — **the trap pattern**. This is why `class_type` in `resource_fabric/fabric_resource_gen.go` is wrong (it should be `Optional`-only). Always hand-review generated schemas against the DB column + response shape.
 
@@ -186,3 +171,18 @@ For response fields that are plain `string` (non-pointer), `types.StringValue(va
 ### Worked examples
 
 See `fabric_resource.go` (mixed: `description` `NOT NULL` → `Default("")`; `class_type` `null=True` → `Optional`-only) (don't compare in comments with it in other resources). Both files are annotated with the reasoning.
+
+## Acceptance testing
+
+See `docs/decisions/0005-acceptance-testing-strategy.md` for the reasoning; `fabric_resource_test.go` is the exemplar (don't compare in comments with it in other resources).
+
+- One resource instance per test, driven through the full lifecycle: create, updates, import, error steps (409 duplicate, 422 invalid input — failed applies persist nothing), and an out-of-band-delete drift step. Tests must be idempotent and leave no trailing resources.
+- Assert plan behavior with `plancheck.ExpectResourceAction` on every apply step — the framework alone does not fail a destroy-and-recreate masquerading as an update.
+- Verify against MAAS, not just state: a per-resource `CheckExists` after each apply and a `CheckDestroy` built from the generic `testAccCheckDestroy` helper (`acctest_test.go`), both using the out-of-band client `testAccNewClient`.
+- Cover omitted vs empty vs set for every optional attribute — these are the regressions the nullability patterns exist to prevent.
+- Unit-test flatten/marshal helpers with table tests; nil-handling must not need a live server to verify.
+- Skip tests that need heavy fixtures (e.g. delete blocked by subnets), and document why.
+- `ExpectError` regexes use `\s+` between words — Terraform wraps diagnostics at about 78 columns.
+- One behavior per config change per step, or a failure will not say which behavior broke.
+- Prefer state-derived ids (`rs.Primary.ID`) over captured variables. Captured ids are only for `PreConfig`, which has no state access; every step that changes the resource's identity must carry the exists check so captured ids stay fresh.
+- Verify framework-behavior claims empirically (e.g. break Delete and watch CheckDestroy fail) rather than by assertion.
