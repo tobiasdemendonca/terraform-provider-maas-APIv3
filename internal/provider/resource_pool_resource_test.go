@@ -18,34 +18,34 @@ import (
 	"terraform-provider-maas-apiv3/internal/client/maasclientv3"
 )
 
-func TestAccZoneResource(t *testing.T) {
-	name := acctest.RandomWithPrefix("tf-zone")
+func TestAccResourcePoolResource(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-resource-pool")
 	nameUpdated := "updated-" + name
 
-	var zoneID int
+	var poolID int
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckMAASZoneDestroy,
+		CheckDestroy:             testAccCheckMAASResourcePoolDestroy,
 		Steps: []resource.TestStep{
 			// Create with name only; description omitted coerces to "".
 			{
-				Config: testAccZoneConfig(name, nil),
-				Check:  testAccZoneCheckExists("maas_zone.test", &zoneID),
+				Config: testAccResourcePoolConfig(name, nil),
+				Check:  testAccResourcePoolCheckExists("maas_resource_pool.test", &poolID),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction("maas_zone.test", plancheck.ResourceActionCreate),
+						plancheck.ExpectResourceAction("maas_resource_pool.test", plancheck.ResourceActionCreate),
 					},
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"maas_zone.test",
+						"maas_resource_pool.test",
 						tfjsonpath.New("name"),
 						knownvalue.StringExact(name),
 					),
 					statecheck.ExpectKnownValue(
-						"maas_zone.test",
+						"maas_resource_pool.test",
 						tfjsonpath.New("description"),
 						knownvalue.StringExact(""),
 					),
@@ -53,21 +53,21 @@ func TestAccZoneResource(t *testing.T) {
 			},
 			// Update: set description and rename, in-place.
 			{
-				Config: testAccZoneConfig(nameUpdated, strPtr("my description")),
-				Check:  testAccZoneCheckExists("maas_zone.test", &zoneID),
+				Config: testAccResourcePoolConfig(nameUpdated, strPtr("my description")),
+				Check:  testAccResourcePoolCheckExists("maas_resource_pool.test", &poolID),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction("maas_zone.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectResourceAction("maas_resource_pool.test", plancheck.ResourceActionUpdate),
 					},
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"maas_zone.test",
+						"maas_resource_pool.test",
 						tfjsonpath.New("name"),
 						knownvalue.StringExact(nameUpdated),
 					),
 					statecheck.ExpectKnownValue(
-						"maas_zone.test",
+						"maas_resource_pool.test",
 						tfjsonpath.New("description"),
 						knownvalue.StringExact("my description"),
 					),
@@ -75,22 +75,22 @@ func TestAccZoneResource(t *testing.T) {
 			},
 			// Import by ID
 			{
-				ResourceName:      "maas_zone.test",
+				ResourceName:      "maas_resource_pool.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			// Update: set description="" explicitly
 			{
-				Config: testAccZoneConfig(nameUpdated, strPtr("")),
-				Check:  testAccZoneCheckExists("maas_zone.test", &zoneID),
+				Config: testAccResourcePoolConfig(nameUpdated, strPtr("")),
+				Check:  testAccResourcePoolCheckExists("maas_resource_pool.test", &poolID),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction("maas_zone.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectResourceAction("maas_resource_pool.test", plancheck.ResourceActionUpdate),
 					},
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"maas_zone.test",
+						"maas_resource_pool.test",
 						tfjsonpath.New("description"),
 						knownvalue.StringExact(""),
 					),
@@ -98,23 +98,23 @@ func TestAccZoneResource(t *testing.T) {
 			},
 			// 422 on an invalid name, no state change.
 			{
-				Config:      testAccZoneConfig("bad!name", nil),
+				Config:      testAccResourcePoolConfig("bad!name", nil),
 				ExpectError: regexp.MustCompile(`Invalid\s+entity\s+name`),
 			},
 			// 409 on a duplicate name, no new resource.
 			{
-				Config: testAccZoneConfig(nameUpdated, nil) + testAccZoneDuplicateConfig(nameUpdated),
+				Config: testAccResourcePoolConfig(nameUpdated, nil) + testAccResourcePoolDuplicateConfig(nameUpdated),
 				// \s+ tolerates a line break between words
 				ExpectError: regexp.MustCompile(`already\s+exists`),
 			},
 			// Out-of-band delete, expect drift detection and recreate.
 			{
-				PreConfig: testAccDeleteZoneByID(t, &zoneID),
-				Config:    testAccZoneConfig(nameUpdated, nil),
-				Check:     testAccZoneCheckExists("maas_zone.test", &zoneID),
+				PreConfig: testAccDeleteResourcePoolByID(t, &poolID),
+				Config:    testAccResourcePoolConfig(nameUpdated, nil),
+				Check:     testAccResourcePoolCheckExists("maas_resource_pool.test", &poolID),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction("maas_zone.test", plancheck.ResourceActionCreate),
+						plancheck.ExpectResourceAction("maas_resource_pool.test", plancheck.ResourceActionCreate),
 					},
 				},
 			},
@@ -122,9 +122,9 @@ func TestAccZoneResource(t *testing.T) {
 	})
 }
 
-var testAccCheckMAASZoneDestroy = testAccCheckDestroy("maas_zone",
+var testAccCheckMAASResourcePoolDestroy = testAccCheckDestroy("maas_resource_pool",
 	func(ctx context.Context, client *maasclientv3.ClientWithResponses, id int) (bool, error) {
-		apiResp, err := client.GetZoneWithResponse(ctx, id)
+		apiResp, err := client.GetResourcePoolWithResponse(ctx, id)
 		if err != nil {
 			return false, err
 		}
@@ -138,8 +138,9 @@ var testAccCheckMAASZoneDestroy = testAccCheckDestroy("maas_zone",
 		}
 	})
 
-// testAccZoneCheckExists verifies the zone exists in MAAS and captures its id.
-func testAccZoneCheckExists(rn string, zoneID *int) resource.TestCheckFunc {
+// testAccResourcePoolCheckExists verifies the resource pool exists in MAAS and
+// captures its id.
+func testAccResourcePoolCheckExists(rn string, poolID *int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -157,55 +158,57 @@ func testAccZoneCheckExists(rn string, zoneID *int) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		apiResp, err := client.GetZoneWithResponse(context.Background(), id)
+		apiResp, err := client.GetResourcePoolWithResponse(context.Background(), id)
 		if err != nil {
-			return fmt.Errorf("error getting zone: %w", err)
+			return fmt.Errorf("error getting resource pool: %w", err)
 		}
 		if apiResp.JSON200 == nil {
-			return fmt.Errorf("zone %d not found in MAAS (API returned %s)", id, apiResp.Status())
+			return fmt.Errorf("resource pool %d not found in MAAS (API returned %s)", id, apiResp.Status())
 		}
 
-		*zoneID = id
+		*poolID = id
 		return nil
 	}
 }
 
-// testAccDeleteZoneByID deletes the zone via the API, simulating an
-// out-of-band deletion. id is set by testAccZoneCheckExists in an earlier step.
-func testAccDeleteZoneByID(t *testing.T, id *int) func() {
+// testAccDeleteResourcePoolByID deletes the resource pool via the API,
+// simulating an out-of-band deletion. id is set by
+// testAccResourcePoolCheckExists in an earlier step.
+func testAccDeleteResourcePoolByID(t *testing.T, id *int) func() {
 	return func() {
 		client, err := testAccNewClient()
 		if err != nil {
 			t.Fatal(err)
 		}
-		delResp, err := client.DeleteZoneWithResponse(context.Background(), *id, &maasclientv3.DeleteZoneParams{})
+		delResp, err := client.DeleteResourcePoolWithResponse(context.Background(), *id, &maasclientv3.DeleteResourcePoolParams{})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if delResp.StatusCode() != 204 {
-			t.Fatalf("deleting zone %d: API returned %s", *id, delResp.Status())
+			t.Fatalf("deleting resource pool %d: API returned %s", *id, delResp.Status())
 		}
 	}
 }
 
-// testAccZoneConfig builds a maas_zone config. nil description omits the
-// attribute (coerced to "" by MAAS); a non-nil pointer emits it, even "".
-func testAccZoneConfig(name string, description *string) string {
+// testAccResourcePoolConfig builds a maas_resource_pool config. nil description
+// omits the attribute (coerced to "" by MAAS); a non-nil pointer emits it,
+// even "".
+func testAccResourcePoolConfig(name string, description *string) string {
 	var descriptionAttr string
 	if description != nil {
 		descriptionAttr = fmt.Sprintf("description = %q\n", *description)
 	}
 	return fmt.Sprintf(`
-resource "maas_zone" "test" {
+resource "maas_resource_pool" "test" {
   name        = %q
   %s
 }
 `, name, descriptionAttr)
 }
 
-func testAccZoneDuplicateConfig(name string) string {
+func testAccResourcePoolDuplicateConfig(name string) string {
 	return fmt.Sprintf(`
-resource "maas_zone" "dup" {
+resource "maas_resource_pool" "dup" {
   name = %q
 }
 `, name)
