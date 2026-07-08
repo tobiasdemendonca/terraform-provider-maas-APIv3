@@ -176,10 +176,46 @@ const (
 	Opaque OAuthTokenTypeChoices = "Opaque"
 )
 
+// Defines values for OAuthVendorChoices.
+const (
+	Auth0    OAuthVendorChoices = "Auth0"
+	EntraID  OAuthVendorChoices = "EntraID"
+	Generic  OAuthVendorChoices = "Generic"
+	Keycloak OAuthVendorChoices = "Keycloak"
+)
+
 // Defines values for OpenFGAEntitlementResourceType.
 const (
 	Maas OpenFGAEntitlementResourceType = "maas"
 	Pool OpenFGAEntitlementResourceType = "pool"
+)
+
+// Defines values for OperationStatus.
+const (
+	OperationStatusACCEPTED            OperationStatus = "ACCEPTED"
+	OperationStatusCANCELLED           OperationStatus = "CANCELLED"
+	OperationStatusCANCELLING          OperationStatus = "CANCELLING"
+	OperationStatusCOMPLETED           OperationStatus = "COMPLETED"
+	OperationStatusCOMPLETEDWITHERRORS OperationStatus = "COMPLETED_WITH_ERRORS"
+	OperationStatusFAILED              OperationStatus = "FAILED"
+	OperationStatusRUNNING             OperationStatus = "RUNNING"
+)
+
+// Defines values for OperationTaskStatus.
+const (
+	OperationTaskStatusCANCELLED OperationTaskStatus = "CANCELLED"
+	OperationTaskStatusCOMPLETED OperationTaskStatus = "COMPLETED"
+	OperationTaskStatusFAILED    OperationTaskStatus = "FAILED"
+	OperationTaskStatusRUNNING   OperationTaskStatus = "RUNNING"
+	OperationTaskStatusWAITING   OperationTaskStatus = "WAITING"
+)
+
+// Defines values for OperationType.
+const (
+	MachineBulkdeploy OperationType = "machine.bulkdeploy"
+	MachineCommission OperationType = "machine.commission"
+	MachineDeploy     OperationType = "machine.deploy"
+	SelectionSync     OperationType = "selection.sync"
 )
 
 // Defines values for PocketsToDisableEnum.
@@ -243,6 +279,7 @@ const (
 	EnableKernelCrashDump                 PublicConfigName = "enable_kernel_crash_dump"
 	EnableThirdPartyDrivers               PublicConfigName = "enable_third_party_drivers"
 	EnlistCommissioning                   PublicConfigName = "enlist_commissioning"
+	ExperimentalSwitchProvisioning        PublicConfigName = "experimental_switch_provisioning"
 	ForceV1NetworkYaml                    PublicConfigName = "force_v1_network_yaml"
 	HardwareSyncInterval                  PublicConfigName = "hardware_sync_interval"
 	HttpProxy                             PublicConfigName = "http_proxy"
@@ -1230,6 +1267,7 @@ type OAuthProviderRequest struct {
 	// Scopes A space-separated list of OIDC scopes defining the information requested from the provider.
 	Scopes    string                `json:"scopes"`
 	TokenType OAuthTokenTypeChoices `json:"token_type"`
+	Vendor    OAuthVendorChoices    `json:"vendor"`
 }
 
 // OAuthProviderResponse defines model for OAuthProviderResponse.
@@ -1246,6 +1284,7 @@ type OAuthProviderResponse struct {
 	Scopes       string                `json:"scopes"`
 	TokenType    OAuthTokenTypeChoices `json:"token_type"`
 	UserCount    *int                  `json:"user_count"`
+	Vendor       OAuthVendorChoices    `json:"vendor"`
 }
 
 // OAuthProvidersListResponse defines model for OAuthProvidersListResponse.
@@ -1259,8 +1298,73 @@ type OAuthProvidersListResponse struct {
 // OAuthTokenTypeChoices defines model for OAuthTokenTypeChoices.
 type OAuthTokenTypeChoices string
 
+// OAuthVendorChoices defines model for OAuthVendorChoices.
+type OAuthVendorChoices string
+
 // OpenFGAEntitlementResourceType Resource types used in OpenFGA tuples.
 type OpenFGAEntitlementResourceType string
+
+// OperationResponse defines model for OperationResponse.
+type OperationResponse struct {
+	UnderscoreEmbedded *map[string]interface{} `json:"_embedded"`
+	UnderscoreLinks    *BaseHal                `json:"_links,omitempty"`
+	Created            time.Time               `json:"created"`
+	CurrentTask        *string                 `json:"current_task"`
+	Finished           *time.Time              `json:"finished"`
+	IsBulk             bool                    `json:"is_bulk"`
+	Kind               *string                 `json:"kind,omitempty"`
+	OpType             OperationType           `json:"op_type"`
+	Parameters         *map[string]interface{} `json:"parameters"`
+	ParentId           *string                 `json:"parent_id"`
+	ResourceId         *int                    `json:"resource_id"`
+	ResourceType       *string                 `json:"resource_type"`
+	Result             *map[string]interface{} `json:"result"`
+	Started            *time.Time              `json:"started"`
+	Status             OperationStatus         `json:"status"`
+	Updated            time.Time               `json:"updated"`
+	UserId             *int                    `json:"user_id"`
+	Uuid               string                  `json:"uuid"`
+}
+
+// OperationStatus defines model for OperationStatus.
+type OperationStatus string
+
+// OperationTaskResponse defines model for OperationTaskResponse.
+type OperationTaskResponse struct {
+	UnderscoreEmbedded *map[string]interface{} `json:"_embedded"`
+	UnderscoreLinks    *BaseHal                `json:"_links,omitempty"`
+	FinishedAt         *time.Time              `json:"finished_at"`
+	Id                 int                     `json:"id"`
+	Kind               *string                 `json:"kind,omitempty"`
+	Name               string                  `json:"name"`
+	OperationUuid      string                  `json:"operation_uuid"`
+	Result             *map[string]interface{} `json:"result"`
+	StartedAt          *time.Time              `json:"started_at"`
+	Status             OperationTaskStatus     `json:"status"`
+	TaskNumber         int                     `json:"task_number"`
+}
+
+// OperationTaskStatus defines model for OperationTaskStatus.
+type OperationTaskStatus string
+
+// OperationTasksListResponse defines model for OperationTasksListResponse.
+type OperationTasksListResponse struct {
+	Items []OperationTaskResponse `json:"items"`
+	Kind  *string                 `json:"kind,omitempty"`
+	Next  *string                 `json:"next"`
+	Total int                     `json:"total"`
+}
+
+// OperationType defines model for OperationType.
+type OperationType string
+
+// OperationsListResponse defines model for OperationsListResponse.
+type OperationsListResponse struct {
+	Items []OperationResponse `json:"items"`
+	Kind  *string             `json:"kind,omitempty"`
+	Next  *string             `json:"next"`
+	Total int                 `json:"total"`
+}
 
 // PackageRepositoryCreateRequest defines model for PackageRepositoryCreateRequest.
 type PackageRepositoryCreateRequest struct {
@@ -2085,12 +2189,14 @@ type UserChangePasswordRequest struct {
 
 // UserCreateRequest defines model for UserCreateRequest.
 type UserCreateRequest struct {
-	Email       *string `json:"email"`
-	FirstName   string  `json:"first_name"`
-	IsSuperuser bool    `json:"is_superuser"`
-	LastName    string  `json:"last_name"`
-	Password    string  `json:"password"`
-	Username    string  `json:"username"`
+	Email     *string `json:"email"`
+	FirstName string  `json:"first_name"`
+
+	// Groups The IDs of the groups the user will be a member of.
+	Groups   *[]int `json:"groups,omitempty"`
+	LastName string `json:"last_name"`
+	Password string `json:"password"`
+	Username string `json:"username"`
 }
 
 // UserGroupMemberRequest defines model for UserGroupMemberRequest.
@@ -2143,6 +2249,12 @@ type UserGroupStatisticsResponse struct {
 	UserCount          int                     `json:"user_count"`
 }
 
+// UserGroupSummaryResponse defines model for UserGroupSummaryResponse.
+type UserGroupSummaryResponse struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 // UserGroupsListResponse defines model for UserGroupsListResponse.
 type UserGroupsListResponse struct {
 	Items []UserGroupResponse `json:"items"`
@@ -2161,24 +2273,24 @@ type UserGroupsStatisticsListResponse struct {
 
 // UserInfoResponse defines model for UserInfoResponse.
 type UserInfoResponse struct {
-	Id          int    `json:"id"`
-	IsSuperuser bool   `json:"is_superuser"`
-	Username    string `json:"username"`
+	Entitlements []EntitlementResponse `json:"entitlements"`
+	Id           int                   `json:"id"`
+	Username     string                `json:"username"`
 }
 
 // UserResponse defines model for UserResponse.
 type UserResponse struct {
-	UnderscoreEmbedded *map[string]interface{} `json:"_embedded"`
-	UnderscoreLinks    *BaseHal                `json:"_links,omitempty"`
-	DateJoined         time.Time               `json:"date_joined"`
-	Email              *string                 `json:"email"`
-	FirstName          string                  `json:"first_name"`
-	Id                 int                     `json:"id"`
-	IsSuperuser        bool                    `json:"is_superuser"`
-	Kind               *string                 `json:"kind,omitempty"`
-	LastLogin          *time.Time              `json:"last_login"`
-	LastName           *string                 `json:"last_name"`
-	Username           string                  `json:"username"`
+	UnderscoreEmbedded *map[string]interface{}    `json:"_embedded"`
+	UnderscoreLinks    *BaseHal                   `json:"_links,omitempty"`
+	DateJoined         time.Time                  `json:"date_joined"`
+	Email              *string                    `json:"email"`
+	FirstName          string                     `json:"first_name"`
+	Groups             []UserGroupSummaryResponse `json:"groups"`
+	Id                 int                        `json:"id"`
+	Kind               *string                    `json:"kind,omitempty"`
+	LastLogin          *time.Time                 `json:"last_login"`
+	LastName           *string                    `json:"last_name"`
+	Username           string                     `json:"username"`
 }
 
 // UserStatisticsResponse defines model for UserStatisticsResponse.
@@ -2195,12 +2307,14 @@ type UserStatisticsResponse struct {
 
 // UserUpdateRequest defines model for UserUpdateRequest.
 type UserUpdateRequest struct {
-	Email       *string `json:"email"`
-	FirstName   string  `json:"first_name"`
-	IsSuperuser bool    `json:"is_superuser"`
-	LastName    string  `json:"last_name"`
-	Password    *string `json:"password"`
-	Username    string  `json:"username"`
+	Email     *string `json:"email"`
+	FirstName string  `json:"first_name"`
+
+	// Groups The IDs of the groups the user will be a member of.
+	Groups   *[]int  `json:"groups,omitempty"`
+	LastName string  `json:"last_name"`
+	Password *string `json:"password"`
+	Username string  `json:"username"`
 }
 
 // UsersListResponse defines model for UsersListResponse.
@@ -2438,8 +2552,13 @@ type BulkDeleteCustomImagesParams struct {
 
 // ListCustomImagesParams defines parameters for ListCustomImages.
 type ListCustomImagesParams struct {
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
-	Size *int `form:"size,omitempty" json:"size,omitempty"`
+	// Id Filter by Custom Image ID
+	Id *[]int `form:"id,omitempty" json:"id,omitempty"`
+
+	// FileType Filter by file type (e.g., self-extracting for switch images)
+	FileType *BootResourceFileTypeChoice `form:"file_type,omitempty" json:"file_type,omitempty"`
+	Page     *int                        `form:"page,omitempty" json:"page,omitempty"`
+	Size     *int                        `form:"size,omitempty" json:"size,omitempty"`
 }
 
 // UploadCustomImageParams defines parameters for UploadCustomImage.
@@ -2466,17 +2585,23 @@ type UploadCustomImageParams struct {
 // ListCustomImagesStatisticParams defines parameters for ListCustomImagesStatistic.
 type ListCustomImagesStatisticParams struct {
 	// Id Filter by Custom Image ID
-	Id   *[]int `form:"id,omitempty" json:"id,omitempty"`
-	Page *int   `form:"page,omitempty" json:"page,omitempty"`
-	Size *int   `form:"size,omitempty" json:"size,omitempty"`
+	Id *[]int `form:"id,omitempty" json:"id,omitempty"`
+
+	// FileType Filter by file type (e.g., self-extracting for switch images)
+	FileType *BootResourceFileTypeChoice `form:"file_type,omitempty" json:"file_type,omitempty"`
+	Page     *int                        `form:"page,omitempty" json:"page,omitempty"`
+	Size     *int                        `form:"size,omitempty" json:"size,omitempty"`
 }
 
 // ListCustomImagesStatusParams defines parameters for ListCustomImagesStatus.
 type ListCustomImagesStatusParams struct {
 	// Id Filter by Custom Image ID
-	Id   *[]int `form:"id,omitempty" json:"id,omitempty"`
-	Page *int   `form:"page,omitempty" json:"page,omitempty"`
-	Size *int   `form:"size,omitempty" json:"size,omitempty"`
+	Id *[]int `form:"id,omitempty" json:"id,omitempty"`
+
+	// FileType Filter by file type (e.g., self-extracting for switch images)
+	FileType *BootResourceFileTypeChoice `form:"file_type,omitempty" json:"file_type,omitempty"`
+	Page     *int                        `form:"page,omitempty" json:"page,omitempty"`
+	Size     *int                        `form:"size,omitempty" json:"size,omitempty"`
 }
 
 // DeleteCustomImageByIdParams defines parameters for DeleteCustomImageById.
@@ -2547,6 +2672,8 @@ type ListFabricVlanSubnetsParams struct {
 
 // DeleteFabricVlanSubnetParams defines parameters for DeleteFabricVlanSubnet.
 type DeleteFabricVlanSubnetParams struct {
+	// Force If true, delete the subnet even if it has IP addresses in use by nodes.
+	Force   *bool   `form:"force,omitempty" json:"force,omitempty"`
 	IfMatch *string `json:"if-match,omitempty"`
 }
 
@@ -2704,6 +2831,32 @@ type ListNotificationsParams struct {
 	Size       *int  `form:"size,omitempty" json:"size,omitempty"`
 }
 
+// ListOperationsParams defines parameters for ListOperations.
+type ListOperationsParams struct {
+	// Status Filter by operation status
+	Status *OperationStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// OpType Filter by operation type
+	OpType *OperationType `form:"op_type,omitempty" json:"op_type,omitempty"`
+
+	// IsBulk Filter by whether operation is bulk (True) or individual (False)
+	IsBulk *bool `form:"is_bulk,omitempty" json:"is_bulk,omitempty"`
+	Page   *int  `form:"page,omitempty" json:"page,omitempty"`
+	Size   *int  `form:"size,omitempty" json:"size,omitempty"`
+}
+
+// CancelOperationParams defines parameters for CancelOperation.
+type CancelOperationParams struct {
+	// Force If true, force termination of the related workflow instead of requesting cancellation.
+	Force *bool `form:"force,omitempty" json:"force,omitempty"`
+}
+
+// GetOperationTasksParams defines parameters for GetOperationTasks.
+type GetOperationTasksParams struct {
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+	Size *int `form:"size,omitempty" json:"size,omitempty"`
+}
+
 // ListPackageRepositoriesParams defines parameters for ListPackageRepositories.
 type ListPackageRepositoriesParams struct {
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
@@ -2826,6 +2979,10 @@ type DeleteTagParams struct {
 type ListUsersParams struct {
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 	Size *int `form:"size,omitempty" json:"size,omitempty"`
+
+	// Id Filter by User ID
+	Id              *[]int  `form:"id,omitempty" json:"id,omitempty"`
+	UsernameOrEmail *string `form:"username_or_email,omitempty" json:"username_or_email,omitempty"`
 }
 
 // ListUserSshkeysParams defines parameters for ListUserSshkeys.
@@ -3809,6 +3966,18 @@ type ClientInterface interface {
 
 	// DismissNotification request
 	DismissNotification(ctx context.Context, notificationId int, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListOperations request
+	ListOperations(ctx context.Context, params *ListOperationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelOperation request
+	CancelOperation(ctx context.Context, operationUuid string, params *CancelOperationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetOperation request
+	GetOperation(ctx context.Context, operationUuid string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetOperationTasks request
+	GetOperationTasks(ctx context.Context, operationUuid string, params *GetOperationTasksParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListPackageRepositories request
 	ListPackageRepositories(ctx context.Context, params *ListPackageRepositoriesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5879,6 +6048,54 @@ func (c *Client) UpdateNotification(ctx context.Context, notificationId int, bod
 
 func (c *Client) DismissNotification(ctx context.Context, notificationId int, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDismissNotificationRequest(c.Server, notificationId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListOperations(ctx context.Context, params *ListOperationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListOperationsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CancelOperation(ctx context.Context, operationUuid string, params *CancelOperationParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelOperationRequest(c.Server, operationUuid, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetOperation(ctx context.Context, operationUuid string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetOperationRequest(c.Server, operationUuid)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetOperationTasks(ctx context.Context, operationUuid string, params *GetOperationTasksParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetOperationTasksRequest(c.Server, operationUuid, params)
 	if err != nil {
 		return nil, err
 	}
@@ -8758,6 +8975,38 @@ func NewListCustomImagesRequest(server string, params *ListCustomImagesParams) (
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Id != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FileType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "file_type", runtime.ParamLocationQuery, *params.FileType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.Page != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
@@ -8932,6 +9181,22 @@ func NewListCustomImagesStatisticRequest(server string, params *ListCustomImages
 
 		}
 
+		if params.FileType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "file_type", runtime.ParamLocationQuery, *params.FileType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.Page != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
@@ -9034,6 +9299,22 @@ func NewListCustomImagesStatusRequest(server string, params *ListCustomImagesSta
 		if params.Id != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FileType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "file_type", runtime.ParamLocationQuery, *params.FileType); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -10451,6 +10732,28 @@ func NewDeleteFabricVlanSubnetRequest(server string, fabricId int, vlanId int, i
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Force != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "force", runtime.ParamLocationQuery, *params.Force); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
@@ -13415,6 +13718,281 @@ func NewDismissNotificationRequest(server string, notificationId int) (*http.Req
 	return req, nil
 }
 
+// NewListOperationsRequest generates requests for ListOperations
+func NewListOperationsRequest(server string, params *ListOperationsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/MAAS/a/v3/operations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OpType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "op_type", runtime.ParamLocationQuery, *params.OpType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IsBulk != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "is_bulk", runtime.ParamLocationQuery, *params.IsBulk); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Page != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Size != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "size", runtime.ParamLocationQuery, *params.Size); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCancelOperationRequest generates requests for CancelOperation
+func NewCancelOperationRequest(server string, operationUuid string, params *CancelOperationParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "operation_uuid", runtime.ParamLocationPath, operationUuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/MAAS/a/v3/operations/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Force != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "force", runtime.ParamLocationQuery, *params.Force); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetOperationRequest generates requests for GetOperation
+func NewGetOperationRequest(server string, operationUuid string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "operation_uuid", runtime.ParamLocationPath, operationUuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/MAAS/a/v3/operations/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetOperationTasksRequest generates requests for GetOperationTasks
+func NewGetOperationTasksRequest(server string, operationUuid string, params *GetOperationTasksParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "operation_uuid", runtime.ParamLocationPath, operationUuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/MAAS/a/v3/operations/%s/tasks", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Page != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Size != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "size", runtime.ParamLocationQuery, *params.Size); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListPackageRepositoriesRequest generates requests for ListPackageRepositories
 func NewListPackageRepositoriesRequest(server string, params *ListPackageRepositoriesParams) (*http.Request, error) {
 	var err error
@@ -15661,6 +16239,38 @@ func NewListUsersRequest(server string, params *ListUsersParams) (*http.Request,
 
 		}
 
+		if params.Id != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, *params.Id); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.UsernameOrEmail != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "username_or_email", runtime.ParamLocationQuery, *params.UsernameOrEmail); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -17618,6 +18228,18 @@ type ClientWithResponsesInterface interface {
 	// DismissNotificationWithResponse request
 	DismissNotificationWithResponse(ctx context.Context, notificationId int, reqEditors ...RequestEditorFn) (*DismissNotificationResponse, error)
 
+	// ListOperationsWithResponse request
+	ListOperationsWithResponse(ctx context.Context, params *ListOperationsParams, reqEditors ...RequestEditorFn) (*ListOperationsResponse, error)
+
+	// CancelOperationWithResponse request
+	CancelOperationWithResponse(ctx context.Context, operationUuid string, params *CancelOperationParams, reqEditors ...RequestEditorFn) (*CancelOperationResponse, error)
+
+	// GetOperationWithResponse request
+	GetOperationWithResponse(ctx context.Context, operationUuid string, reqEditors ...RequestEditorFn) (*GetOperationResponse, error)
+
+	// GetOperationTasksWithResponse request
+	GetOperationTasksWithResponse(ctx context.Context, operationUuid string, params *GetOperationTasksParams, reqEditors ...RequestEditorFn) (*GetOperationTasksResponse, error)
+
 	// ListPackageRepositoriesWithResponse request
 	ListPackageRepositoriesWithResponse(ctx context.Context, params *ListPackageRepositoriesParams, reqEditors ...RequestEditorFn) (*ListPackageRepositoriesResponse, error)
 
@@ -19541,6 +20163,7 @@ type DeleteFabricVlanSubnetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON404      *NotFoundBodyResponse
+	JSON412      *PreconditionFailedBodyResponse
 	JSON422      *ValidationErrorBodyResponse
 }
 
@@ -20728,6 +21351,102 @@ func (r DismissNotificationResponse) StatusCode() int {
 	return 0
 }
 
+type ListOperationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *OperationsListResponse
+	JSON422      *ValidationErrorBodyResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListOperationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListOperationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CancelOperationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON202      *OperationResponse
+	JSON404      *NotFoundBodyResponse
+	JSON409      *ConflictBodyResponse
+	JSON422      *ValidationErrorBodyResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelOperationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelOperationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetOperationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *OperationResponse
+	JSON404      *NotFoundBodyResponse
+	JSON422      *ValidationErrorBodyResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetOperationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetOperationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetOperationTasksResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *OperationTasksListResponse
+	JSON404      *NotFoundBodyResponse
+	JSON422      *ValidationErrorBodyResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetOperationTasksResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetOperationTasksResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListPackageRepositoriesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -21826,6 +22545,7 @@ type CreateUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *UserResponse
+	JSON404      *NotFoundBodyResponse
 	JSON409      *ConflictBodyResponse
 	JSON422      *ValidationErrorBodyResponse
 }
@@ -23816,6 +24536,42 @@ func (c *ClientWithResponses) DismissNotificationWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseDismissNotificationResponse(rsp)
+}
+
+// ListOperationsWithResponse request returning *ListOperationsResponse
+func (c *ClientWithResponses) ListOperationsWithResponse(ctx context.Context, params *ListOperationsParams, reqEditors ...RequestEditorFn) (*ListOperationsResponse, error) {
+	rsp, err := c.ListOperations(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListOperationsResponse(rsp)
+}
+
+// CancelOperationWithResponse request returning *CancelOperationResponse
+func (c *ClientWithResponses) CancelOperationWithResponse(ctx context.Context, operationUuid string, params *CancelOperationParams, reqEditors ...RequestEditorFn) (*CancelOperationResponse, error) {
+	rsp, err := c.CancelOperation(ctx, operationUuid, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelOperationResponse(rsp)
+}
+
+// GetOperationWithResponse request returning *GetOperationResponse
+func (c *ClientWithResponses) GetOperationWithResponse(ctx context.Context, operationUuid string, reqEditors ...RequestEditorFn) (*GetOperationResponse, error) {
+	rsp, err := c.GetOperation(ctx, operationUuid, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetOperationResponse(rsp)
+}
+
+// GetOperationTasksWithResponse request returning *GetOperationTasksResponse
+func (c *ClientWithResponses) GetOperationTasksWithResponse(ctx context.Context, operationUuid string, params *GetOperationTasksParams, reqEditors ...RequestEditorFn) (*GetOperationTasksResponse, error) {
+	rsp, err := c.GetOperationTasks(ctx, operationUuid, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetOperationTasksResponse(rsp)
 }
 
 // ListPackageRepositoriesWithResponse request returning *ListPackageRepositoriesResponse
@@ -27285,6 +28041,13 @@ func ParseDeleteFabricVlanSubnetResponse(rsp *http.Response) (*DeleteFabricVlanS
 		}
 		response.JSON404 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest PreconditionFailedBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
 		var dest ValidationErrorBodyResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -29204,6 +29967,166 @@ func ParseDismissNotificationResponse(rsp *http.Response) (*DismissNotificationR
 	return response, nil
 }
 
+// ParseListOperationsResponse parses an HTTP response from a ListOperationsWithResponse call
+func ParseListOperationsResponse(rsp *http.Response) (*ListOperationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListOperationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OperationsListResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ValidationErrorBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelOperationResponse parses an HTTP response from a CancelOperationWithResponse call
+func ParseCancelOperationResponse(rsp *http.Response) (*CancelOperationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelOperationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest OperationResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ConflictBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ValidationErrorBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetOperationResponse parses an HTTP response from a GetOperationWithResponse call
+func ParseGetOperationResponse(rsp *http.Response) (*GetOperationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetOperationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OperationResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ValidationErrorBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetOperationTasksResponse parses an HTTP response from a GetOperationTasksWithResponse call
+func ParseGetOperationTasksResponse(rsp *http.Response) (*GetOperationTasksResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetOperationTasksResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OperationTasksListResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ValidationErrorBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListPackageRepositoriesResponse parses an HTTP response from a ListPackageRepositoriesWithResponse call
 func ParseListPackageRepositoriesResponse(rsp *http.Response) (*ListPackageRepositoriesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -30994,6 +31917,13 @@ func ParseCreateUserResponse(rsp *http.Response) (*CreateUserResponse, error) {
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundBodyResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest ConflictBodyResponse
