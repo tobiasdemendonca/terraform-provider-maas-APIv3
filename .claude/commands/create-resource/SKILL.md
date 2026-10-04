@@ -45,6 +45,6 @@ Follow these steps in order:
 
 8. **Verify** — Run `make lint fmt`, then `make build` to verify it compiles.
 
-9. **Example** — Add 1 or more examples of the resource in `.devenv/main.tf` that tests its functionality for the user's own QA. Inform them. 
+9. **Example** — Add 1 or more examples of the resource in `playground/main.tf` that tests its functionality for the user's own QA. Inform them. 
 
 10. **Remind** — let the user know they should write acceptance tests. Tests must be idempotent and leave no trailing resources.

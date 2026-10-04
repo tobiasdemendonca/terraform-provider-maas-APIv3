@@ -22,6 +22,7 @@ make lint             # golangci-lint
 make test             # unit tests
 make testacc          # acceptance tests (requires live MAAS + TF_ACC=1)
 make create-dev-overrides  # write dev.tfrc for local provider testing
+make playground       # scaffold gitignored playground/main.tf for manual QA
 ```
 
 ## Project Layout

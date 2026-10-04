@@ -40,3 +40,6 @@ api/openapi.converted.json
 # Dev env
 .devenv/*
 dev.tfrc
+
+# Local manual-testing workspace (make playground)
+playground/
