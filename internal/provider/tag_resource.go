@@ -91,11 +91,13 @@ func (r *tagResource) Configure(_ context.Context, req resource.ConfigureRequest
 
 func (r *tagResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data tagResourceModel
+	// Read terraform plan into the model.
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Convert the terraform model into the API request body.
 	body := maasclientv3.CreateTagJSONRequestBody{
 		Name:       data.Name.ValueString(),
 		Comment:    optionalString(data.Comment),
@@ -103,6 +105,7 @@ func (r *tagResource) Create(ctx context.Context, req resource.CreateRequest, re
 		KernelOpts: optionalString(data.KernelOpts),
 	}
 
+	// Create the resource using the API client.
 	apiResp, err := r.client.CreateTagWithResponse(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating tag", err.Error())
@@ -113,11 +116,13 @@ func (r *tagResource) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 
+	// Copy API response fields back into the terraform model and save to state.
 	flattenTag(apiResp.JSON201, &data)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *tagResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Read terraform state into the model.
 	var data tagResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
