@@ -41,3 +41,6 @@ api/generated/provider-code-spec.json
 # Dev env
 .devenv/*
 dev.tfrc
+
+# Local manual-testing workspace (make playground)
+playground/
