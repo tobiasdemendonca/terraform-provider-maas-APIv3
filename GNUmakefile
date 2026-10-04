@@ -52,6 +52,9 @@ create-dev-overrides: install ## Install provider + write dev.tfrc for local tes
 	@echo "  Or run 'terraform init -upgrade' once a new release is published."
 	@echo ""
 
+playground: ## Create a playground/ directory with a starter main.tf for manual testing
+	@bash scripts/create-playground.sh
+
 lint: ## Run golangci-lint
 	golangci-lint run
 
@@ -101,4 +104,4 @@ generate-resources: ## Regenerate provider schemas from api/generated/openapi.js
 		--input api/generated/provider-code-spec.json \
 		--output internal/provider
 
-.PHONY: help fmt lint test testacc build install generate generate-client generate-resources create-dev-overrides scaffold-resource scaffold-datasource scaffold-function
+.PHONY: help fmt lint test testacc build install generate generate-client generate-resources create-dev-overrides scaffold-resource scaffold-datasource scaffold-function playground
