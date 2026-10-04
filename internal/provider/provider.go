@@ -38,7 +38,7 @@ type MaasProvider struct {
 
 // MaasProviderModel is the decoded HCL/env configuration block.
 type MaasProviderModel struct {
-	URL      types.String `tfsdk:"url"`
+	URL      types.String `tfsdk:"api_url"`
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
 }
@@ -57,7 +57,7 @@ func (p *MaasProvider) Metadata(_ context.Context, _ provider.MetadataRequest, r
 func (p *MaasProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"url": schema.StringAttribute{
+			"api_url": schema.StringAttribute{
 				MarkdownDescription: fmt.Sprintf("MAAS API base URL (e.g. `http://10.0.0.1:5240`). Can also be set via `%s`.", MaasURLEnvKey),
 				Optional:            true,
 			},
@@ -85,7 +85,7 @@ func (p *MaasProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 	if url == "" {
 		resp.Diagnostics.AddError("Missing MAAS URL",
-			fmt.Sprintf("Set url in the provider block or the %s environment variable.", MaasURLEnvKey))
+			fmt.Sprintf("Set api_url in the provider block or the %s environment variable.", MaasURLEnvKey))
 	}
 	if username == "" {
 		resp.Diagnostics.AddError("Missing MAAS username",
